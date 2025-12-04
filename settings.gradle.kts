@@ -9,16 +9,23 @@ pluginManagement {
         }
         mavenCentral()
         gradlePluginPortal()
+        maven("https://jitpack.io")
+        maven("https://maven.google.com")
     }
-}
-dependencyResolutionManagement {
-    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-    repositories {
-        google()
-        mavenCentral()
+    plugins {
+        id("com.google.dagger.hilt.android") version "2.50"
     }
 }
 
+dependencyResolutionManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+        maven("https://jitpack.io")
+        maven("https://maven.google.com")
+    }
+}
 rootProject.name = "Chicken Retro Doodle"
 include(":app")
  
