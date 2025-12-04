@@ -1,4 +1,4 @@
-package com.chicken.retrodoodle.ui.theme.components
+package com.chicken.retrodoodle.ui.components
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -44,7 +44,7 @@ fun GradientText(
     )
 ) {
     val typeFace = remember {
-        androidx.compose.ui.text.font.FontFamily(
+        FontFamily(
             Font(
                 R.font.fraunces,
                 weight = FontWeight.Bold
@@ -65,7 +65,7 @@ fun GradientText(
 
         val gradientText = buildAnnotatedString {
             withStyle(style = SpanStyle(brush = brush)) {
-                AnnotatedString.Builder.append(text)
+                append(text)
             }
         }
 

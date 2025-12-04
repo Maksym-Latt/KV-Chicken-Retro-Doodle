@@ -18,7 +18,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.chicken.retrodoodle.core.model.PlayerSkin
-import com.chicken.retrodoodle.ui.theme.components.GradientText
 
 @Composable
 fun SkinCard(

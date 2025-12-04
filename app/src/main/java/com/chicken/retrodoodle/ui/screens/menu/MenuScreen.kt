@@ -32,7 +32,7 @@ import com.chicken.retrodoodle.R
 import com.chicken.retrodoodle.audio.AudioController
 import com.chicken.retrodoodle.ui.components.PixelButton
 import com.chicken.retrodoodle.ui.navigation.AppDestination
-import com.chicken.retrodoodle.ui.theme.components.GradientText
+import com.chicken.retrodoodle.ui.components.GradientText
 
 @Composable
 fun MenuScreen(navController: NavHostController, audio: AudioController) {

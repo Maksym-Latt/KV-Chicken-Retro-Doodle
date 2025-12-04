@@ -6,7 +6,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.chicken.retrodoodle.audio.AudioController
-import com.chicken.retrodoodle.ui.screens.game.GameScreen
 import com.chicken.retrodoodle.ui.screens.menu.MenuScreen
 import com.chicken.retrodoodle.ui.screens.skins.SkinsScreen
 

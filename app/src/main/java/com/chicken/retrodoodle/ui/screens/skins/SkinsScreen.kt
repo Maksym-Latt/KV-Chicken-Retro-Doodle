@@ -24,9 +24,10 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.chicken.retrodoodle.R
+import com.chicken.retrodoodle.core.model.PlayerSkin
 import com.chicken.retrodoodle.ui.components.PixelButton
 import com.chicken.retrodoodle.ui.components.SkinCard
-import com.chicken.retrodoodle.ui.theme.components.GradientText
+import com.chicken.retrodoodle.ui.components.GradientText
 
 @Composable
 fun SkinsScreen(navController: NavHostController, viewModel: SkinsViewModel = hiltViewModel()) {
