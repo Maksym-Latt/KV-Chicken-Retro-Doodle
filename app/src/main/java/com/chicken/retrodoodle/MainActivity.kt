@@ -7,6 +7,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.chicken.retrodoodle.audio.AudioController
 import com.chicken.retrodoodle.ui.navigation.AppRoot
 import com.chicken.retrodoodle.ui.theme.ChickenRetroDoodleTheme
@@ -21,6 +22,7 @@ class MainActivity : ComponentActivity() {
     lateinit var audio: AudioController
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        installSplashScreen()
         WindowCompat.setDecorFitsSystemWindows(window, false)
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()

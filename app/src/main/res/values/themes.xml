@@ -2,4 +2,11 @@
 <resources>
 
     <style name="Theme.ChickenRetroDoodle" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <style name="Theme.ChickenRetroDoodle.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/splash_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
+        <item name="windowSplashScreenAnimationDuration">400</item>
+        <item name="postSplashScreenTheme">@style/Theme.ChickenRetroDoodle</item>
+    </style>
 </resources>

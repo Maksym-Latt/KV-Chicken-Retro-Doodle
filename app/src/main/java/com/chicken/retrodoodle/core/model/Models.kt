@@ -1,11 +1,12 @@
 package com.chicken.retrodoodle.core.model
 
+import android.os.Parcelable
 import androidx.annotation.DrawableRes
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.dp
 import com.chicken.retrodoodle.R
+import com.chicken.retrodoodle.core.config.GameDimensions
 import kotlinx.parcelize.Parcelize
-import android.os.Parcelable
 
 enum class PlatformType { Static, Moving, Cracked }
 
@@ -54,4 +55,4 @@ enum class PlayerSkin(@DrawableRes val sprite: Int) : Parcelable {
 
 enum class GameStatus { Idle, Playing, Paused, GameOver }
 
-val PlayerSize = 32.dp
+val PlayerSize = GameDimensions.playerSize.dp

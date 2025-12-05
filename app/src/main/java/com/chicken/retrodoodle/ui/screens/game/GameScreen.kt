@@ -31,6 +31,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.chicken.retrodoodle.R
 import com.chicken.retrodoodle.audio.AudioController
+import com.chicken.retrodoodle.core.config.GameDimensions
 import com.chicken.retrodoodle.core.model.GameStatus
 import com.chicken.retrodoodle.core.model.PlatformType
 import com.chicken.retrodoodle.core.model.PlayerSize
@@ -127,23 +128,31 @@ fun GameScreen(
                     )
                 }
 
+                val collectibleSize = GameDimensions.collectibleSize
                 state.collectibles.forEach { egg ->
                     Image(
                         painter = painterResource(id = R.drawable.item_gold_egg),
                         contentDescription = null,
                         modifier = Modifier
-                            .offset(x = (egg.position.x - 10f).dp, y = (egg.position.y - cameraOffset - 12f).dp)
-                            .size(24.dp)
+                            .offset(
+                                x = (egg.position.x - collectibleSize / 2f).dp,
+                                y = (egg.position.y - cameraOffset - collectibleSize / 2f).dp
+                            )
+                            .size(collectibleSize.dp)
                     )
                 }
 
+                val enemySize = GameDimensions.enemySize
                 state.enemies.forEach { enemy ->
                     Image(
                         painter = painterResource(id = R.drawable.item_bug),
                         contentDescription = null,
                         modifier = Modifier
-                            .offset(x = (enemy.position.x - 16f).dp, y = (enemy.position.y - cameraOffset - 12f).dp)
-                            .size(32.dp)
+                            .offset(
+                                x = (enemy.position.x - enemySize / 2f).dp,
+                                y = (enemy.position.y - cameraOffset - enemySize / 2f).dp
+                            )
+                            .size(enemySize.dp)
                     )
                 }
 
