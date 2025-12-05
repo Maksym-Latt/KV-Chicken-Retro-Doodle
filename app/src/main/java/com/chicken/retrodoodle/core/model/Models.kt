@@ -49,8 +49,8 @@ enum class PlayerSkin(
     val title: String
         get() = when (this) {
             Classic -> "Classic Chick"
-            Blue -> "Blue Sky Hen"
-            Red -> "Red Pixel Hen"
+            Blue -> "Blue Sky"
+            Red -> "Red Pixel"
             Knight -> "Knight Chick"
         }
 

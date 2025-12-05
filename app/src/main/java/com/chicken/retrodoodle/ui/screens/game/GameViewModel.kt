@@ -22,334 +22,151 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-private val BASE_PLATFORM_SPACING = 110f * GameScaling.itemScale
-private const val HORIZONTAL_TILT_ACCEL = 320f
-private const val MAX_HORIZONTAL_SPEED = 420f
-private const val GRAVITY = 1250f
-private const val JUMP_FORCE = 680f
-private val EDGE_PADDING = 12f * GameScaling.itemScale
-private val WORLD_BUFFER = 900f * GameScaling.itemScale
-private val START_OFFSET = 120f * GameScaling.itemScale
-private val PLAYER_PLATFORM_GAP = 6f * GameScaling.itemScale
-private val PLAYER_COLLISION_TOLERANCE = GameScaling.platformCollisionBuffer
-private val COLLECTIBLE_VERTICAL_OFFSET = 26f * GameScaling.itemScale
-private val COLLECTIBLE_MIN_DISTANCE = 12f * GameScaling.itemScale
-private val ENEMY_VERTICAL_OFFSET = 34f * GameScaling.itemScale
-private val ENEMY_MIN_DISTANCE = 48f * GameScaling.itemScale
-
 @HiltViewModel
 class GameViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository,
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(GameUiState())
-    val uiState: StateFlow<GameUiState> = _uiState.asStateFlow()
+    private val _ui = MutableStateFlow(GameUiState())
+    val uiState: StateFlow<GameUiState> = _ui.asStateFlow()
 
-    private var bestScoreJob: Job? = null
-    private var skinJob: Job? = null
+    private val gravity = 1800f       // ускорение вниз
+    private val jumpForce = 900f      // сила прыжка (как Doodle Jump)
+    private val tiltAccel = 900f      // реакция на наклон — резкая
+    private val maxSpeedX = 550f      // как Doodle Jump
 
-    init {
-        bestScoreJob = viewModelScope.launch {
-            settingsRepository.bestScoreFlow.collect { best ->
-                _uiState.value = _uiState.value.copy(bestScore = best)
-            }
-        }
+    fun startGame(worldW: Float, worldH: Float) {
 
-        skinJob = viewModelScope.launch {
-            settingsRepository.selectedSkinFlow.collect { skin ->
-                _uiState.value = _uiState.value.copy(
-                    player = _uiState.value.player.copy(skin = skin)
-                )
-            }
-        }
-    }
+        val startPlatformY = worldH - 200f  // Платформа не слишком низко
 
-    fun startGame(worldWidth: Float, worldHeight: Float) {
-        val startY = worldHeight - START_OFFSET
         val basePlatform = Platform(
             id = 0,
-            position = Offset(worldWidth / 2f, startY),
-            width = GameScaling.platformWidth,
-            height = GameScaling.platformHeight,
+            position = Offset(worldW / 2f, startPlatformY),
+            width = 140f,
+            height = 36f,
             type = PlatformType.Static
         )
-        val platforms = buildList {
-            add(basePlatform)
-            addAll(generatePlatforms(worldWidth, startY))
-        }
 
-        _uiState.value = GameUiState(
-            status = GameStatus.Playing,
-            player = Player(
-                position = Offset(
-                    worldWidth / 2f,
-                    startY - GameScaling.playerSize / 2f - PLAYER_PLATFORM_GAP
-                ),
-                velocity = Offset.Zero,
-                skin = _uiState.value.player.skin
-            ),
-            platforms = platforms,
-            collectibles = emptyList(),
-            enemies = emptyList(),
-            score = 0,
-            bestScore = _uiState.value.bestScore,
-            eggs = 0,
-            highestY = startY,
-            tiltX = 0f,
-            cameraOffset = startY - worldHeight * 0.45f,
-            worldWidth = worldWidth,
-            worldHeight = worldHeight
-        )
-    }
+        val platforms = mutableListOf(basePlatform)
 
-    fun updateTilt(x: Float) {
-        if (_uiState.value.status == GameStatus.Playing) {
-            _uiState.value = _uiState.value.copy(tiltX = x)
-        }
-    }
+        // Игрок должен стоять ПРЯМО НА платформе
+        val playerSize = 64f
+        val playerStartY = startPlatformY - basePlatform.height / 2f - playerSize / 2f
 
-    fun updateFrame(delta: Float) {
-        val state = _uiState.value
-        if (state.status != GameStatus.Playing || delta <= 0f) return
-        if (state.worldWidth == 0f || state.worldHeight == 0f) return
-
-        val player = state.player
-
-        val newVelocity = Offset(
-            x = (player.velocity.x + (-state.tiltX * HORIZONTAL_TILT_ACCEL * delta))
-                .coerceIn(-MAX_HORIZONTAL_SPEED, MAX_HORIZONTAL_SPEED),
-            y = player.velocity.y + GRAVITY * delta
-        )
-
-        val nextPos = player.position + newVelocity * delta
-        val wrappedX = when {
-            nextPos.x < -GameScaling.playerSize -> state.worldWidth + nextPos.x
-            nextPos.x > state.worldWidth -> nextPos.x - state.worldWidth
-            else -> nextPos.x
-        }
-        var updatedPos = Offset(wrappedX, nextPos.y)
-        var updatedVelocity = newVelocity
-
-        val platforms = state.platforms.toMutableList()
-        val previousBottom = player.position.y + GameScaling.playerSize / 2f
-        val newBottom = updatedPos.y + GameScaling.playerSize / 2f
-
-        platforms.firstOrNull { platform ->
-            val top = platform.position.y - platform.height / 2f
-            previousBottom <= top && newBottom >= top && updatedVelocity.y > 0f &&
-                abs(updatedPos.x - platform.position.x) <
-                platform.width / 2f + GameScaling.playerSize / 2f - PLAYER_COLLISION_TOLERANCE
-        }?.let { platform ->
-            updatedVelocity = updatedVelocity.copy(y = -JUMP_FORCE)
-            updatedPos = updatedPos.copy(
-                y = platform.position.y - platform.height / 2f - GameScaling.playerSize / 2f
-            )
-            if (platform.type == PlatformType.Cracked) {
-                platforms.remove(platform)
-            }
-        }
-
-        val enemies = state.enemies.toMutableList()
-        val collectibles = state.collectibles.toMutableList()
-
-        enemies.firstOrNull { enemy ->
-            abs(enemy.position.x - updatedPos.x) < GameScaling.enemyCollisionHalfWidth &&
-                abs(enemy.position.y - updatedPos.y) < GameScaling.enemyCollisionHalfHeight
-        }?.let { hit ->
-            if (updatedVelocity.y > 0f) {
-                enemies.remove(hit)
-                updatedVelocity = updatedVelocity.copy(y = -JUMP_FORCE * 1.08f)
-            } else {
-                endGame()
-                return
-            }
-        }
-
-        var eggs = state.eggs
-        collectibles.firstOrNull { egg ->
-            abs(egg.position.x - updatedPos.x) < GameScaling.collectibleCollisionHalfWidth &&
-                abs(egg.position.y - updatedPos.y) < GameScaling.collectibleCollisionHalfHeight
-        }?.let { found ->
-            eggs += 1
-            collectibles.remove(found)
-        }
-
-        val movedPlatforms = movePlatforms(platforms, delta, state.worldWidth)
-        val movedEnemies = moveEnemies(enemies, delta, state.worldWidth)
-
-        val highestY = min(state.highestY, updatedPos.y)
-        val cameraOffset = min(updatedPos.y - state.worldHeight * 0.45f, state.cameraOffset)
-        val score = (state.worldHeight - highestY).toInt().coerceAtLeast(0)
-
-        val extendedPlatforms = extendPlatforms(movedPlatforms, state.worldWidth, highestY, cameraOffset, state.worldHeight)
-        val extendedCollectibles = spawnCollectibles(collectibles, extendedPlatforms)
-        val extendedEnemies = spawnEnemies(movedEnemies, extendedPlatforms)
-
-        if (updatedPos.y - cameraOffset > state.worldHeight + GameScaling.playerSize) {
-            endGame()
-            return
-        }
-
-        _uiState.value = state.copy(
-            player = player.copy(position = updatedPos, velocity = updatedVelocity),
-            platforms = extendedPlatforms,
-            enemies = extendedEnemies,
-            collectibles = extendedCollectibles,
-            eggs = eggs,
-            highestY = highestY,
-            cameraOffset = cameraOffset,
-            score = score
-        )
-    }
-
-    fun pauseGame() {
-        if (_uiState.value.status == GameStatus.Playing) {
-            _uiState.value = _uiState.value.copy(status = GameStatus.Paused)
-        }
-    }
-
-    fun resumeGame() {
-        if (_uiState.value.status == GameStatus.Paused) {
-            _uiState.value = _uiState.value.copy(status = GameStatus.Playing)
-        }
-    }
-
-    fun resetGame() {
-        _uiState.value = GameUiState(player = _uiState.value.player)
-    }
-
-    private fun extendPlatforms(
-        platforms: List<Platform>,
-        width: Float,
-        highestY: Float,
-        cameraOffset: Float,
-        worldHeight: Float
-    ): List<Platform> {
-        val mutable = platforms.filter { it.position.y - cameraOffset < worldHeight + 120f }.toMutableList()
-        var minY = mutable.minOfOrNull { it.position.y } ?: highestY
-        var nextId = (mutable.maxOfOrNull { it.id } ?: 0) + 1
-
-        while (minY > highestY - WORLD_BUFFER) {
-            minY -= BASE_PLATFORM_SPACING
-            mutable.add(createPlatform(id = nextId++, y = minY, width = width))
-        }
-        return mutable
-    }
-
-    private fun movePlatforms(platforms: List<Platform>, delta: Float, width: Float): List<Platform> {
-        return platforms.map { platform ->
-            if (platform.type != PlatformType.Moving) platform else {
-                val nextX = platform.position.x + platform.direction * 60f * delta
-                val direction = when {
-                    nextX < EDGE_PADDING -> 1f
-                    nextX > width - EDGE_PADDING -> -1f
-                    else -> platform.direction
-                }
-                platform.copy(
-                    position = platform.position.copy(x = nextX.coerceIn(EDGE_PADDING, width - EDGE_PADDING)),
-                    direction = direction
-                )
-            }
-        }
-    }
-
-    private fun moveEnemies(enemies: List<Enemy>, delta: Float, width: Float): List<Enemy> {
-        return enemies.map { enemy ->
-            val nextX = enemy.position.x + enemy.direction * enemy.speed * delta
-            val direction = when {
-                nextX < EDGE_PADDING -> 1f
-                nextX > width - EDGE_PADDING -> -1f
-                else -> enemy.direction
-            }
-            enemy.copy(
-                position = enemy.position.copy(x = nextX.coerceIn(EDGE_PADDING, width - EDGE_PADDING)),
-                direction = direction
-            )
-        }
-    }
-
-    private fun spawnCollectibles(existing: List<Collectible>, platforms: List<Platform>): List<Collectible> {
-        if (existing.size >= 6) return existing
-        val mutable = existing.toMutableList()
-        platforms.filter { it.type == PlatformType.Static && Random.nextFloat() < 0.07f }
-            .forEach { platform ->
-                if (mutable.none { abs(it.position.y - platform.position.y) < COLLECTIBLE_MIN_DISTANCE }) {
-                    mutable.add(
-                        Collectible(
-                            id = platform.id,
-                            position = platform.position.copy(y = platform.position.y - COLLECTIBLE_VERTICAL_OFFSET)
-                        )
-                    )
-                }
-            }
-        return mutable
-    }
-
-    private fun spawnEnemies(existing: List<Enemy>, platforms: List<Platform>): List<Enemy> {
-        if (existing.size >= 4) return existing
-        val mutable = existing.toMutableList()
-        platforms.filter { Random.nextFloat() < 0.05f }
-            .forEach { platform ->
-                if (mutable.none { abs(it.position.y - platform.position.y) < ENEMY_MIN_DISTANCE }) {
-                    mutable.add(
-                        Enemy(
-                            id = platform.id,
-                            position = platform.position.copy(y = platform.position.y - ENEMY_VERTICAL_OFFSET),
-                            direction = if (Random.nextBoolean()) 1f else -1f,
-                            speed = 55f
-                        )
-                    )
-                }
-            }
-        return mutable
-    }
-
-    private fun generatePlatforms(width: Float, startY: Float): List<Platform> {
-        var y = startY
+        // Генерация остальных платформ
+        var y = startPlatformY
         var id = 1
-        return buildList {
-            while (y > startY - WORLD_BUFFER) {
-                y -= BASE_PLATFORM_SPACING
-                add(createPlatform(id = id++, y = y, width = width))
-            }
+        while (y > startPlatformY - 3500f) {
+            y -= (150..230).random()
+            platforms += Platform(
+                id = id++,
+                position = Offset(
+                    x = (30..(worldW - 30).toInt()).random().toFloat(),
+                    y = y
+                ),
+                width = 140f,
+                height = 36f,
+                type = PlatformType.Static
+            )
         }
+
+        _ui.value = GameUiState(
+            status = GameStatus.Playing,
+            worldWidth = worldW,
+            worldHeight = worldH,
+            cameraOffset = 0f,  // камера ровно снизу
+            highestY = playerStartY,
+            platforms = platforms,
+            player = Player(
+                position = Offset(worldW / 2f, playerStartY),
+                velocity = Offset(0f, 0f),
+                skin = _ui.value.player.skin
+            )
+        )
     }
 
-    private fun createPlatform(id: Int, y: Float, width: Float): Platform {
-        val type = when (Random.nextFloat()) {
-            in 0f..0.12f -> PlatformType.Moving
-            in 0.12f..0.22f -> PlatformType.Cracked
-            else -> PlatformType.Static
+
+    fun updateTilt(tilt: Float) {
+        _ui.value = _ui.value.copy(tiltX = tilt)
+    }
+
+    fun updateFrame(dt: Float) {
+        var s = _ui.value
+        if (s.status != GameStatus.Playing) return
+
+        var p = s.player
+
+        // ——— ДВИЖЕНИЕ ПО X (резкое как Doodle Jump)
+        val vx = (p.velocity.x + (-s.tiltX * tiltAccel * dt))
+            .coerceIn(-maxSpeedX, maxSpeedX)
+
+        // ——— ДВИЖЕНИЕ ПО Y
+        val vy = p.velocity.y + gravity * dt
+
+        var pos = p.position + Offset(vx * dt, vy * dt)
+        var vel = Offset(vx, vy)
+
+        // ——— ПЕТЛЯ ПО X
+        if (pos.x < -50f) pos = pos.copy(x = s.worldWidth + pos.x)
+        if (pos.x > s.worldWidth) pos = pos.copy(x = pos.x - s.worldWidth)
+
+        // ——— СТОЛКНОВЕНИЕ С ПЛАТФОРМАМИ (как Doodle Jump)
+        s.platforms.forEach { pl ->
+            val top = pl.position.y - pl.height / 2f
+            val previousY = p.position.y + 32
+            val currentY = pos.y + 32
+
+            if (previousY <= top && currentY >= top && vel.y > 0 &&
+                kotlin.math.abs(pos.x - pl.position.x) < pl.width / 2 + 25
+            ) {
+                vel = vel.copy(y = -jumpForce)
+                pos = pos.copy(y = top - 32f)
+            }
         }
-        return Platform(
-            id = id,
-            position = Offset(
-                x = Random.nextFloat() * (width - EDGE_PADDING * 2f) + EDGE_PADDING,
-                y = y
-            ),
-            width = GameScaling.platformWidth,
-            height = GameScaling.platformHeight,
-            type = type,
-            direction = if (Random.nextBoolean()) 1f else -1f
+
+        // ——— КАМЕРА (самое важное!)
+        var cam = s.cameraOffset
+
+        // пока игрок НИЖЕ половины — камера не двигается
+        val playerScreenY = pos.y - cam
+
+        if (playerScreenY < s.worldHeight * 0.4f) {
+            // двигаем камеру вверх
+            cam = pos.y - s.worldHeight * 0.4f
+        }
+
+        // ——— если игрок упал ниже экрана → конец игры
+        if (playerScreenY > s.worldHeight + 100f) {
+            endGame(); return
+        }
+
+        // ——— обновляем лучший Y
+        val highest = min(s.highestY, pos.y)
+
+        _ui.value = s.copy(
+            player = p.copy(position = pos, velocity = vel),
+            cameraOffset = cam,
+            highestY = highest,
+            score = ((s.worldHeight - highest) / 10).toInt()
         )
     }
 
     private fun endGame() {
-        val current = _uiState.value
-        if (current.status == GameStatus.GameOver) return
-        viewModelScope.launch {
-            settingsRepository.saveBestScore(current.score)
-            settingsRepository.addEggs(current.eggs)
-        }
-        _uiState.value = current.copy(status = GameStatus.GameOver)
+        val s = _ui.value
+        _ui.value = s.copy(status = GameStatus.GameOver)
     }
 
-    override fun onCleared() {
-        super.onCleared()
-        bestScoreJob?.cancel()
-        skinJob?.cancel()
+    fun pauseGame() {
+        if (_ui.value.status == GameStatus.Playing)
+            _ui.value = _ui.value.copy(status = GameStatus.Paused)
+    }
+
+    fun resumeGame() {
+        if (_ui.value.status == GameStatus.Paused)
+            _ui.value = _ui.value.copy(status = GameStatus.Playing)
     }
 }
+
 
 private operator fun Offset.times(value: Float): Offset = Offset(x * value, y * value)
 

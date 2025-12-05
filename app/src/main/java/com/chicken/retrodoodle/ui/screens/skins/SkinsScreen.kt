@@ -1,19 +1,27 @@
 package com.chicken.retrodoodle.ui.screens.skins
 
+import android.R.attr.maxWidth
+import android.R.attr.onClick
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.absoluteOffset
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -24,9 +32,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -34,6 +44,7 @@ import androidx.navigation.NavHostController
 import com.chicken.retrodoodle.R
 import com.chicken.retrodoodle.audio.AudioController
 import com.chicken.retrodoodle.core.model.PlayerSkin
+import com.chicken.retrodoodle.ui.components.CoinsCounter
 import com.chicken.retrodoodle.ui.components.GlossyButton
 import com.chicken.retrodoodle.ui.components.GradientText
 import com.chicken.retrodoodle.ui.screens.skins.SkinUiModel
@@ -51,12 +62,11 @@ fun SkinsScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF0E1C2A))
+            .background(brush = Brush.verticalGradient(
+                listOf(Color(0xFFB4FF63), Color(0xFF61C932))
+            ))
     ) {
 
-        // -------------------------
-        // ФОН
-        // -------------------------
         Image(
             painter = painterResource(id = R.drawable.bg_shop),
             contentDescription = null,
@@ -64,53 +74,37 @@ fun SkinsScreen(
             contentScale = ContentScale.Crop
         )
 
-        // -------------------------
-        // КНОПКА НАЗАД
-        // -------------------------
-        GlossyButton(
-            iconRes = R.drawable.ic_launcher_foreground,
-            modifier = Modifier
-                .padding(start = 16.dp, top = 16.dp)
-                .size(60.dp)
-                .align(Alignment.TopStart),
-            cornerRadius = 16.dp,
-            onClick = { navController.navigateUp() }
-        )
-
-        // -------------------------
-        // СОДЕРЖИМОЕ
-        // -------------------------
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 70.dp)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-
-            // -------------------------
-            // ТЕКУЩИЕ ОЧКИ
-            // -------------------------
             Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(WindowInsets.safeDrawing.asPaddingValues()),
+                verticalAlignment = Alignment.Top,
+                horizontalArrangement = Arrangement.Start
             ) {
-                GradientText(text = "Collected: ${state.eggs}", size = 26.sp, stroke = 6f)
-                Spacer(modifier = Modifier.width(8.dp))
-                Image(
-                    painter = painterResource(id = R.drawable.ic_coin),
-                    contentDescription = null,
-                    modifier = Modifier.size(26.dp)
+                GlossyButton(
+                    iconRes = R.drawable.ic_launcher_foreground,
+                    modifier = Modifier.size(60.dp),
+                    cornerRadius = 16.dp,
+                    onClick = { navController.navigateUp() }
+                )
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                CoinsCounter(
+                    value = state.eggs,
+                    modifier = Modifier
                 )
             }
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // -------------------------
-            // СКИНЫ
-            // -------------------------
             SkinsGrid(
                 skins = state.skins,
                 selected = state.selectedSkin,
@@ -130,76 +124,156 @@ fun SkinsGrid(
     onBuy: (PlayerSkin) -> Unit
 ) {
 
-    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+        val cardWidth = maxWidth / 2 - 10.dp
+        val cardHeight = cardWidth * 1.8f
+        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
 
-        skins.chunked(2).forEach { rowSkins ->
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                rowSkins.forEach { skin ->
-                    SkinCard(
-                        skin = skin,
-                        isSelected = skin.skin == selected,
-                        onSelect = { onSelect(skin.skin) },
-                        onBuy = { onBuy(skin.skin) }
-                    )
+            skins.chunked(2).forEach { rowSkins ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    rowSkins.forEach { skin ->
+                        SkinCard(
+                            skin = skin,
+                            isSelected = skin.skin == selected,
+                            onSelect = { onSelect(skin.skin) },
+                            onBuy = { onBuy(skin.skin) },
+                            width = cardWidth,
+                            height = cardHeight
+                        )
+                    }
                 }
             }
         }
     }
 }
+
 @Composable
 fun SkinCard(
     skin: SkinUiModel,
     isSelected: Boolean,
     onSelect: () -> Unit,
-    onBuy: () -> Unit
+    onBuy: () -> Unit,
+    width: Dp,
+    height: Dp
 ) {
     val price = skin.price
     val owned = skin.owned
 
+    val gradient = Brush.verticalGradient(
+        colors = listOf(
+            Color(0xffd4f75b),
+            Color(0xff76970c)
+        )
+    )
+
+    val titleParts = skin.title.split(" ")
+
     Box(
         modifier = Modifier
-            .width(160.dp)
-            .height(250.dp)
-            .shadow(12.dp, RoundedCornerShape(22.dp))
-            .background(Color(0xFFACFF63), RoundedCornerShape(22.dp))
-            .border(4.dp, Color(0xFF1C2B31), RoundedCornerShape(22.dp))
-            .padding(10.dp)
+            .width(width)
+            .height(height)
+            .shadow(10.dp, RoundedCornerShape(20.dp))
+            .background(brush = gradient, shape = RoundedCornerShape(20.dp))
+            .border(3.dp, Color(0xFF1C2B31), RoundedCornerShape(20.dp))
+            .padding(8.dp)
     ) {
 
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.SpaceBetween,
             modifier = Modifier.fillMaxSize()
+
         ) {
+            Spacer(modifier = Modifier.weight(0.2f))
 
-            GradientText(text = skin.title, size = 20.sp, stroke = 6f)
+            Box(
+                contentAlignment = Alignment.Center
+            ) {
+                if (titleParts.size >= 2) {
 
-            Image(
-                painter = painterResource(id = skin.image),
-                contentDescription = null,
-                modifier = Modifier.size(110.dp)
-            )
+                    GradientText(
+                        text = titleParts[0],
+                        size = 36.sp,
+                        stroke = 4f,
+                        brush = Brush.verticalGradient(
+                            listOf(Color(0xFFAEB0FD), Color(0xFFAEB0FD))
+                        )
+                    )
+
+                    GradientText(
+                        text = titleParts[1],
+                        size = 36.sp,
+                        stroke = 4f,
+                        brush = Brush.verticalGradient(
+                            listOf(Color(0xFFAEB0FD), Color(0xFFAEB0FD))
+                        ),
+                        modifier = Modifier.absoluteOffset(y = 36.dp)
+                    )
+
+                } else {
+                    GradientText(
+                        text = skin.title,
+                        size = 36.sp,
+                        stroke = 4f,
+                        brush = Brush.verticalGradient(
+                            listOf(Color(0xFFAEB0FD), Color(0xFFAEB0FD))
+                        )
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.weight(3f))
+
+            Box(
+                modifier = Modifier
+                    .weight(8f)
+                    .wrapContentSize(Alignment.Center)
+            ) {
+                Image(
+                    painter = painterResource(id = skin.image),
+                    contentDescription = null,
+                    modifier = Modifier.size(width * 0.85f)
+                )
+            }
+
+            Spacer(modifier = Modifier.weight(1f))
 
             when {
                 owned && isSelected ->
-                    GlossyButton(text = "Selected", enabled = false)
+                    GlossyButton(
+                        text = "Selected",
+                        modifier = Modifier
+                            .fillMaxWidth(0.85f),
+                        textSize = 22.sp,
+                        enabled = false,
+                        iconScale = 1f,
+                        onClick = {}
+                    )
 
                 owned && !isSelected ->
-                    GlossyButton(text = "Select", onClick = onSelect)
+                    GlossyButton(
+                        text = "Select",
+                        modifier = Modifier
+                            .fillMaxWidth(0.85f),
+                        textSize = 32.sp,
+                        iconScale = 1f,
+                        onClick = onSelect
+                    )
 
                 else ->
                     GlossyButton(
-                        text = "${price}",
-                        iconRes = R.drawable.ic_coin,
+                        text = price.toString(),
+                        iconRes = R.drawable.item_gold_egg,
+                        modifier = Modifier
+                            .fillMaxWidth(0.85f),
+                        textSize = 32.sp,
+                        iconScale = 1f,
                         onClick = onBuy
                     )
             }
+            Spacer(modifier = Modifier.weight(0.2f))
         }
     }
 }
-
-
-

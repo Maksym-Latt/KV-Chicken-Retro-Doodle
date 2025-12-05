@@ -17,6 +17,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -72,7 +73,10 @@ fun PixelButton(
                 GradientText(
                     text = text,
                     size = textSize,
-                    stroke = stroke
+                    stroke = stroke,
+                    brush = Brush.verticalGradient(
+                        listOf(Color(0xFFAEB0FD), Color(0xFFAEB0FD))
+                    )
                 )
             }
         }
