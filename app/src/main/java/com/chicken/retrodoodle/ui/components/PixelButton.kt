@@ -1,12 +1,16 @@
 package com.chicken.retrodoodle.ui.components
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -14,33 +18,63 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 @Composable
 fun PixelButton(
-    text: String,
     modifier: Modifier = Modifier,
-    enabled: Boolean = true,
-    expand: Boolean = true,
-    contentPadding: PaddingValues = PaddingValues(vertical = 12.dp, horizontal = 18.dp),
+    text: String? = null,
+    iconRes: Int? = null,
+    contentPadding: PaddingValues = PaddingValues(horizontal = 20.dp, vertical = 14.dp),
+
+    // ---- Цвета ----
+    backgroundColor: Color = Color(0xFF1B2B3B),
+    borderColor: Color = Color(0xFF6DF2FF),
+    textSize: TextUnit = 26.sp,
+    stroke: Float = 6f,
+
+    // ---- Другие параметры ----
+    cornerRadius: Dp = 10.dp,
     onClick: () -> Unit
 ) {
-    val shape = RoundedCornerShape(6.dp)
+    val shape = RoundedCornerShape(cornerRadius)
+
     Box(
         modifier = modifier
-            .then(if (expand) Modifier.fillMaxWidth() else Modifier)
-            .shadow(6.dp, shape)
-            .background(if (enabled) Color(0xFF1B2B3B) else Color(0xFF555555), shape)
-            .border(3.dp, Color(0xFF4BE7FF), shape)
-            .clickable(enabled = enabled, onClick = onClick)
+            .shadow(10.dp, shape)
+            .background(backgroundColor, shape)
+            .border(3.dp, borderColor, shape)
+            .clickable(onClick = onClick)
             .padding(contentPadding),
         contentAlignment = Alignment.Center
     ) {
-        GradientText(
-            text = text,
-            expand = true,
-            size = MaterialTheme.typography.titleLarge.fontSize,
-            stroke = 6f
-        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            // ---------------- ИКОНКА ----------------
+            if (iconRes != null) {
+                Image(
+                    painter = painterResource(id = iconRes),
+                    contentDescription = null,
+                    modifier = Modifier.size(30.dp),
+                    contentScale = ContentScale.Fit
+                )
+            }
+
+            // ---------------- ТЕКСТ ----------------
+            if (text != null) {
+                GradientText(
+                    text = text,
+                    size = textSize,
+                    stroke = stroke
+                )
+            }
+        }
     }
 }

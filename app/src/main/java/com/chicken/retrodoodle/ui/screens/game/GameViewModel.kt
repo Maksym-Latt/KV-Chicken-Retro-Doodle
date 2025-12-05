@@ -144,7 +144,6 @@ class GameViewModel @Inject constructor(
             if (adjustedVelocity.y > 0f) {
                 enemies.remove(enemyHit)
                 adjustedVelocity = adjustedVelocity.copy(y = -JUMP_VELOCITY * 1.05f)
-                eggsCollected += 1
             } else {
                 endGame()
                 return
@@ -333,7 +332,7 @@ class GameViewModel @Inject constructor(
 
 private operator fun Offset.times(value: Float): Offset = Offset(x * value, y * value)
 
-private data class GameUiState(
+data class GameUiState(
     val status: GameStatus = GameStatus.Idle,
     val player: Player = Player(),
     val platforms: List<Platform> = emptyList(),

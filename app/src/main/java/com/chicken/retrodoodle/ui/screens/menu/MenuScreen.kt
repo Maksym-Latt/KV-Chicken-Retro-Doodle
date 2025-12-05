@@ -1,28 +1,24 @@
 package com.chicken.retrodoodle.ui.screens.menu
 
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.wrapContentSize
-import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
@@ -30,64 +26,75 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.chicken.retrodoodle.R
 import com.chicken.retrodoodle.audio.AudioController
-import com.chicken.retrodoodle.ui.components.PixelButton
-import com.chicken.retrodoodle.ui.navigation.AppDestination
+import com.chicken.retrodoodle.ui.components.GameTitle
+import com.chicken.retrodoodle.ui.components.GlossyButton
 import com.chicken.retrodoodle.ui.components.GradientText
 
 @Composable
-fun MenuScreen(navController: NavHostController, audio: AudioController) {
+fun MenuScreen(
+    navController: NavHostController,
+    audio: AudioController
+) {
     LaunchedEffect(Unit) { audio.playMenuMusic() }
 
-    Surface(modifier = Modifier.fillMaxSize(), color = Color(0xFF0E1C2A)) {
-        Box(
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF0E1C2A))
+    ) {
+        Image(
+            painter = painterResource(id = R.drawable.bg_game),
+            contentDescription = null,
             modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
+            contentScale = ContentScale.Crop
+        )
+
+        GlossyButton(
+            iconRes = R.drawable.ic_launcher_foreground,
+            modifier = Modifier
+                .padding(start = 16.dp, top = 16.dp)
+                .size(60.dp)
+                .align(Alignment.TopStart),
+            cornerRadius = 16.dp,
+            onClick = { navController.navigate("settings") }
+        )
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(WindowInsets.safeDrawing.asPaddingValues()),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Image(
-                painter = painterResource(id = R.drawable.bg_game),
-                contentDescription = null,
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop,
-                alpha = 0.35f
+            Spacer(modifier = Modifier.weight(1f))
+
+            GameTitle()
+
+            Spacer(modifier = Modifier.weight(1.2f))
+
+            GlossyButton(
+                iconRes = R.drawable.ic_launcher_foreground,
+                cornerRadius = 20.dp,
+                onClick = { navController.navigate("game") },
+                iconScale = 2f
             )
 
-            Column(
-                modifier = Modifier
-                    .wrapContentSize()
-                    .padding(horizontal = 32.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                GradientText(text = "Chicken Retro Doodle", size = 34.sp, stroke = 7f)
-                Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.weight(1.3f))
 
-                val transition = rememberInfiniteTransition(label = "chick")
-                val bob by transition.animateFloat(
-                    initialValue = -6f,
-                    targetValue = 6f,
-                    animationSpec = infiniteRepeatable(
-                        animation = tween(900),
-                        repeatMode = RepeatMode.Reverse
-                    ),
-                    label = "bob"
-                )
+            Image(
+                painter = painterResource(id = R.drawable.chicken_1),
+                contentDescription = null,
+                modifier = Modifier.size(110.dp)
+            )
 
-                Image(
-                    painter = painterResource(id = R.drawable.chicken_1),
-                    contentDescription = null,
-                    modifier = Modifier
-                        .size(72.dp)
-                        .padding(vertical = 6.dp)
-                        .graphicsLayer { translationY = bob }
-                )
+            Spacer(modifier = Modifier.height(12.dp))
 
-                PixelButton(text = "Play") {
-                    navController.navigate(AppDestination.Game)
-                }
-                PixelButton(text = "Skins") {
-                    navController.navigate(AppDestination.Skins)
-                }
-            }
+            GlossyButton(
+                text = "Shop",
+                modifier = Modifier.fillMaxWidth(0.55f),
+                onClick = { navController.navigate("shop") }
+            )
+
+            Spacer(modifier = Modifier.weight(0.7f))
         }
     }
 }

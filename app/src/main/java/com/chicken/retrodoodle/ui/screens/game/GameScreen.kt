@@ -34,9 +34,6 @@ import com.chicken.retrodoodle.core.model.GameStatus
 import com.chicken.retrodoodle.core.model.PlatformType
 import com.chicken.retrodoodle.core.model.PlayerSize
 import com.chicken.retrodoodle.ui.components.GameHud
-import com.chicken.retrodoodle.ui.components.GameIntroOverlay
-import com.chicken.retrodoodle.ui.components.GameOverOverlay
-import com.chicken.retrodoodle.ui.components.GamePauseOverlay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.yield
 import kotlin.math.max

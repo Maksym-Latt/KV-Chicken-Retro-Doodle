@@ -1,4 +1,4 @@
-package com.chicken.retrodoodle.ui.components
+package com.chicken.retrodoodle.ui.screens.game
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -10,6 +10,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.chicken.retrodoodle.ui.components.GradientText
+import com.chicken.retrodoodle.ui.components.OverlayPanel
+import com.chicken.retrodoodle.ui.components.PixelButton
 
 @Composable
 fun GameOverOverlay(
