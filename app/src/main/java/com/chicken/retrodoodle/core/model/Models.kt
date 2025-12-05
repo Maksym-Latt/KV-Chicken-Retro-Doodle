@@ -15,7 +15,8 @@ data class Platform(
     val width: Float = 96f,
     val height: Float = 18f,
     val type: PlatformType = PlatformType.Static,
-    val direction: Float = 1f
+    val direction: Float = 1f,
+    val isBroken: Boolean = false,
 )
 
 data class Enemy(

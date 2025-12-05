@@ -24,6 +24,7 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
@@ -31,18 +32,22 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.chicken.retrodoodle.R
 import com.chicken.retrodoodle.audio.AudioController
+import com.chicken.retrodoodle.core.model.GameConfig
 import com.chicken.retrodoodle.core.model.GameStatus
 import com.chicken.retrodoodle.core.model.GameScaling
 import com.chicken.retrodoodle.core.model.PlatformType
 import com.chicken.retrodoodle.core.model.PlayerSize
 import com.chicken.retrodoodle.ui.components.GameHud
 import kotlinx.coroutines.isActive
+import kotlin.math.roundToInt
 
 @Composable
 fun GameScreen(
@@ -115,18 +120,24 @@ fun GameScreen(
             val cam = state.cameraOffset
 
             state.platforms.forEach { p ->
+                if (p.isBroken) return@forEach
                 val bmp = when (p.type) {
                     PlatformType.Static -> plateGreen
                     PlatformType.Moving -> plateBlue
                     PlatformType.Cracked -> plateBrown
                 }
 
+                val dstOffset = IntOffset(
+                    (p.position.x - p.width / 2f).roundToInt(),
+                    (p.position.y - cam - p.height / 2f).roundToInt()
+                )
+
                 drawImage(
                     image = bmp,
-                    topLeft = Offset(
-                        p.position.x - p.width / 2f,
-                        p.position.y - cam - p.height / 2f
-                    )
+                    srcOffset = IntOffset.Zero,
+                    srcSize = IntSize(bmp.width, bmp.height),
+                    dstOffset = dstOffset,
+                    dstSize = IntSize(p.width.roundToInt(), p.height.roundToInt())
                 )
             }
 
@@ -150,13 +161,47 @@ fun GameScreen(
                 )
             }
 
+            val playerSizePx = GameScaling.playerSize
+            val playerDstOffset = IntOffset(
+                (state.player.position.x - playerSizePx / 2f).roundToInt(),
+                (state.player.position.y - cam - playerSizePx / 2f).roundToInt()
+            )
+
             drawImage(
                 image = playerBmp,
-                topLeft = Offset(
-                    state.player.position.x - 32f,
-                    state.player.position.y - cam - 32f
-                )
+                srcOffset = IntOffset.Zero,
+                srcSize = IntSize(playerBmp.width, playerBmp.height),
+                dstOffset = playerDstOffset,
+                dstSize = IntSize(playerSizePx.roundToInt(), playerSizePx.roundToInt())
             )
+
+            if (GameConfig.debugCollisionOverlay) {
+                // Платформы
+                state.platforms.forEach { platform ->
+                    if (platform.isBroken) return@forEach
+                    drawRect(
+                        color = Color.Red.copy(alpha = 0.3f),
+                        topLeft = Offset(
+                            platform.position.x - platform.width / 2f,
+                            platform.position.y - cam - platform.height / 2f
+                        ),
+                        size = Size(platform.width, platform.height),
+                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2f)
+                    )
+                }
+
+                // Игрок
+                val half = GameScaling.playerSize / 2f
+                drawRect(
+                    color = Color.Green.copy(alpha = 0.4f),
+                    topLeft = Offset(
+                        state.player.position.x - half,
+                        state.player.position.y - cam - half
+                    ),
+                    size = Size(GameScaling.playerSize, GameScaling.playerSize),
+                    style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2f)
+                )
+            }
         }
 
         GameHud(
