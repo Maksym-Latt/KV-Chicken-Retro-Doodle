@@ -1,6 +1,5 @@
 package com.chicken.retrodoodle.ui.screens.game
 
-import android.R.attr.onClick
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -29,8 +28,6 @@ import androidx.compose.ui.unit.sp
 import com.chicken.retrodoodle.R
 import com.chicken.retrodoodle.ui.components.GlossyButton
 import com.chicken.retrodoodle.ui.components.GradientText
-import com.chicken.retrodoodle.ui.components.OverlayPanel
-import com.chicken.retrodoodle.ui.components.PixelButton
 
 @Composable
 fun GamePauseOverlay(
@@ -81,47 +78,14 @@ fun GamePauseOverlay(
 
                 Spacer(Modifier.height(22.dp))
 
-                // ---------- MUSIC ----------
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    GradientText(
-                        text = "Music",
-                        size = 22.sp,
-                        stroke = 6f,
-                        expand = false
-                    )
+                AudioSettingsSection(
+                    musicOn = musicOn,
+                    soundsOn = soundsOn,
+                    onToggleMusic = onToggleMusic,
+                    onToggleSounds = onToggleSounds,
+                )
 
-                    PixelSwitch(
-                        enabled = musicOn,
-                        onToggle = onToggleMusic
-                    )
-                }
-
-                Spacer(Modifier.height(18.dp))
-
-                // ---------- SOUNDS ----------
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    GradientText(
-                        text = "Sounds",
-                        size = 22.sp,
-                        stroke = 6f,
-                        expand = false
-                    )
-
-                    PixelSwitch(
-                        enabled = soundsOn,
-                        onToggle = onToggleSounds
-                    )
-                }
-
-                Spacer(Modifier.height(34.dp))
+                Spacer(Modifier.height(20.dp))
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -155,6 +119,52 @@ fun GamePauseOverlay(
                     .offset(x = 22.dp, y = (-26).dp)
                     .size(64.dp),
                 onClick = onResume
+            )
+        }
+    }
+}
+
+@Composable
+fun AudioSettingsSection(
+    musicOn: Boolean,
+    soundsOn: Boolean,
+    onToggleMusic: () -> Unit,
+    onToggleSounds: () -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            GradientText(
+                text = "Music",
+                size = 22.sp,
+                stroke = 6f,
+                expand = false
+            )
+
+            PixelSwitch(
+                enabled = musicOn,
+                onToggle = onToggleMusic
+            )
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            GradientText(
+                text = "Sounds",
+                size = 22.sp,
+                stroke = 6f,
+                expand = false
+            )
+
+            PixelSwitch(
+                enabled = soundsOn,
+                onToggle = onToggleSounds
             )
         }
     }

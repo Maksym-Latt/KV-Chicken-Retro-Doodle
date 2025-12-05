@@ -4,4 +4,5 @@ object AppDestination {
     const val Menu = "menu"
     const val Game = "game"
     const val Skins = "shop"
+    const val Settings = "settings"
 }
