@@ -22,11 +22,13 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-private const val PLATFORM_SPACING = 120f
-private const val HORIZONTAL_SPEED = 380f
-private const val GRAVITY = 1200f
-private const val JUMP_VELOCITY = 620f
-private const val HORIZONTAL_PADDING = 12f
+private const val BASE_PLATFORM_SPACING = 110f
+private const val HORIZONTAL_TILT_ACCEL = 320f
+private const val MAX_HORIZONTAL_SPEED = 420f
+private const val GRAVITY = 1250f
+private const val JUMP_FORCE = 680f
+private const val EDGE_PADDING = 12f
+private const val WORLD_BUFFER = 900f
 
 @HiltViewModel
 class GameViewModel @Inject constructor(
@@ -56,30 +58,35 @@ class GameViewModel @Inject constructor(
     }
 
     fun startGame(worldWidth: Float, worldHeight: Float) {
-        val startPlatformY = worldHeight - 120f
-        val startPlatform = Platform(
+        val startY = worldHeight - 120f
+        val basePlatform = Platform(
             id = 0,
-            position = Offset(worldWidth / 2f, startPlatformY),
-            width = 96f,
-            height = 18f,
+            position = Offset(worldWidth / 2f, startY),
+            width = 110f,
+            height = 20f,
             type = PlatformType.Static
         )
-        val firstPlatforms = generatePlatforms(startPlatform, worldWidth, count = 6)
-        val playerStart = Player(
-            position = Offset(worldWidth / 2f, startPlatformY - PlayerSize.value / 2f - 4f),
-            velocity = Offset.Zero,
-            skin = _uiState.value.player.skin
-        )
+        val platforms = buildList {
+            add(basePlatform)
+            addAll(generatePlatforms(worldWidth, startY))
+        }
+
         _uiState.value = GameUiState(
             status = GameStatus.Playing,
-            player = playerStart,
-            platforms = listOf(startPlatform) + firstPlatforms,
+            player = Player(
+                position = Offset(worldWidth / 2f, startY - PlayerSize.value / 2f - 6f),
+                velocity = Offset.Zero,
+                skin = _uiState.value.player.skin
+            ),
+            platforms = platforms,
             collectibles = emptyList(),
             enemies = emptyList(),
             score = 0,
-            eggs = 0,
-            cameraOffset = startPlatformY - worldHeight * 0.4f,
             bestScore = _uiState.value.bestScore,
+            eggs = 0,
+            highestY = startY,
+            tiltX = 0f,
+            cameraOffset = startY - worldHeight * 0.45f,
             worldWidth = worldWidth,
             worldHeight = worldHeight
         )
@@ -93,100 +100,92 @@ class GameViewModel @Inject constructor(
 
     fun updateFrame(delta: Float) {
         val state = _uiState.value
-        if (state.status != GameStatus.Playing) return
+        if (state.status != GameStatus.Playing || delta <= 0f) return
+        if (state.worldWidth == 0f || state.worldHeight == 0f) return
 
         val player = state.player
-        val width = state.worldWidth
-        val height = state.worldHeight
-        if (width == 0f || height == 0f) return
 
         val newVelocity = Offset(
-            x = (player.velocity.x + (-state.tiltX * HORIZONTAL_SPEED * delta)).coerceIn(-HORIZONTAL_SPEED, HORIZONTAL_SPEED),
+            x = (player.velocity.x + (-state.tiltX * HORIZONTAL_TILT_ACCEL * delta))
+                .coerceIn(-MAX_HORIZONTAL_SPEED, MAX_HORIZONTAL_SPEED),
             y = player.velocity.y + GRAVITY * delta
         )
 
-        val newPosition = player.position + newVelocity * delta
+        val nextPos = player.position + newVelocity * delta
         val wrappedX = when {
-            newPosition.x < -PlayerSize.value -> width + newPosition.x
-            newPosition.x > width -> newPosition.x - width
-            else -> newPosition.x
+            nextPos.x < -PlayerSize.value -> state.worldWidth + nextPos.x
+            nextPos.x > state.worldWidth -> nextPos.x - state.worldWidth
+            else -> nextPos.x
         }
-        var adjustedPosition = Offset(wrappedX, newPosition.y)
-        var adjustedVelocity = newVelocity
-        var platforms = state.platforms.toMutableList()
-        val prevBottom = player.position.y + PlayerSize.value / 2f
-        val newBottom = adjustedPosition.y + PlayerSize.value / 2f
+        var updatedPos = Offset(wrappedX, nextPos.y)
+        var updatedVelocity = newVelocity
 
-        val collided = platforms.firstOrNull { platform ->
+        val platforms = state.platforms.toMutableList()
+        val previousBottom = player.position.y + PlayerSize.value / 2f
+        val newBottom = updatedPos.y + PlayerSize.value / 2f
+
+        platforms.firstOrNull { platform ->
             val top = platform.position.y - platform.height / 2f
-            prevBottom <= top && newBottom >= top && adjustedVelocity.y > 0f &&
-                abs(adjustedPosition.x - platform.position.x) < platform.width / 2f + PlayerSize.value / 2f - 6f
-        }
-
-        if (collided != null) {
-            val updatedVel = Offset(adjustedVelocity.x, -JUMP_VELOCITY)
-            adjustedVelocity = updatedVel
-            adjustedPosition = adjustedPosition.copy(y = collided.position.y - collided.height / 2f - PlayerSize.value / 2f)
-            if (collided.type == PlatformType.Cracked) {
-                platforms.remove(collided)
+            previousBottom <= top && newBottom >= top && updatedVelocity.y > 0f &&
+                abs(updatedPos.x - platform.position.x) < platform.width / 2f + PlayerSize.value / 2f - 4f
+        }?.let { platform ->
+            updatedVelocity = updatedVelocity.copy(y = -JUMP_FORCE)
+            updatedPos = updatedPos.copy(y = platform.position.y - platform.height / 2f - PlayerSize.value / 2f)
+            if (platform.type == PlatformType.Cracked) {
+                platforms.remove(platform)
             }
         }
 
         val enemies = state.enemies.toMutableList()
         val collectibles = state.collectibles.toMutableList()
 
-        val enemyHit = enemies.firstOrNull { enemy ->
-            abs(enemy.position.x - adjustedPosition.x) < 18f &&
-                abs(enemy.position.y - adjustedPosition.y) < 18f
-        }
-
-        if (enemyHit != null) {
-            if (adjustedVelocity.y > 0f) {
-                enemies.remove(enemyHit)
-                adjustedVelocity = adjustedVelocity.copy(y = -JUMP_VELOCITY * 1.05f)
+        enemies.firstOrNull { enemy ->
+            abs(enemy.position.x - updatedPos.x) < 16f &&
+                abs(enemy.position.y - updatedPos.y) < 18f
+        }?.let { hit ->
+            if (updatedVelocity.y > 0f) {
+                enemies.remove(hit)
+                updatedVelocity = updatedVelocity.copy(y = -JUMP_FORCE * 1.08f)
             } else {
                 endGame()
                 return
             }
         }
 
-        val eggHit = collectibles.firstOrNull { egg ->
-            abs(egg.position.x - adjustedPosition.x) < 16f &&
-                abs(egg.position.y - adjustedPosition.y) < 16f
+        var eggs = state.eggs
+        collectibles.firstOrNull { egg ->
+            abs(egg.position.x - updatedPos.x) < 14f &&
+                abs(egg.position.y - updatedPos.y) < 16f
+        }?.let { found ->
+            eggs += 1
+            collectibles.remove(found)
         }
 
-        var eggsCollected = state.eggs
-        if (eggHit != null) {
-            eggsCollected += 1
-            collectibles.remove(eggHit)
-        }
+        val movedPlatforms = movePlatforms(platforms, delta, state.worldWidth)
+        val movedEnemies = moveEnemies(enemies, delta, state.worldWidth)
 
-        val updatedPlatforms = movePlatforms(platforms, delta, width)
-        val updatedEnemies = moveEnemies(enemies, delta, width)
+        val highestY = min(state.highestY, updatedPos.y)
+        val cameraOffset = min(updatedPos.y - state.worldHeight * 0.45f, state.cameraOffset)
+        val score = (state.worldHeight - highestY).toInt().coerceAtLeast(0)
 
-        val highestY = min(state.highestY, adjustedPosition.y)
-        val scoreValue = ((state.worldHeight - highestY)).toInt()
-        val camera = min(adjustedPosition.y - height * 0.4f, state.cameraOffset)
+        val extendedPlatforms = extendPlatforms(movedPlatforms, state.worldWidth, highestY, cameraOffset, state.worldHeight)
+        val extendedCollectibles = spawnCollectibles(collectibles, extendedPlatforms)
+        val extendedEnemies = spawnEnemies(movedEnemies, extendedPlatforms)
 
-        val extendedPlatforms = extendPlatforms(updatedPlatforms, width, highestY)
-        val extendedCollectibles = spawnCollectiblesIfNeeded(collectibles, extendedPlatforms)
-        val extendedEnemies = spawnEnemiesIfNeeded(updatedEnemies, extendedPlatforms)
-
-        if (adjustedPosition.y - state.cameraOffset > height + PlayerSize.value) {
+        if (updatedPos.y - cameraOffset > state.worldHeight + PlayerSize.value) {
             endGame()
             return
         }
 
         _uiState.value = state.copy(
-            player = player.copy(position = adjustedPosition, velocity = adjustedVelocity),
+            player = player.copy(position = updatedPos, velocity = updatedVelocity),
             platforms = extendedPlatforms,
             enemies = extendedEnemies,
             collectibles = extendedCollectibles,
-            eggs = eggsCollected,
+            eggs = eggs,
             highestY = highestY,
-            score = scoreValue,
-            cameraOffset = camera,
-            tiltX = state.tiltX
+            cameraOffset = cameraOffset,
+            score = score
         )
     }
 
@@ -206,120 +205,125 @@ class GameViewModel @Inject constructor(
         _uiState.value = GameUiState(player = _uiState.value.player)
     }
 
-    private fun extendPlatforms(platforms: List<Platform>, width: Float, highestY: Float): List<Platform> {
-        val mutable = platforms.toMutableList()
-        val currentMinY = mutable.minOfOrNull { it.position.y } ?: highestY
-        var nextY = currentMinY - PLATFORM_SPACING
+    private fun extendPlatforms(
+        platforms: List<Platform>,
+        width: Float,
+        highestY: Float,
+        cameraOffset: Float,
+        worldHeight: Float
+    ): List<Platform> {
+        val mutable = platforms.filter { it.position.y - cameraOffset < worldHeight + 120f }.toMutableList()
+        var minY = mutable.minOfOrNull { it.position.y } ?: highestY
         var nextId = (mutable.maxOfOrNull { it.id } ?: 0) + 1
-        while (nextY > highestY - 800f) {
-            val type = when (Random.nextFloat()) {
-                in 0f..0.15f -> PlatformType.Moving
-                in 0.15f..0.3f -> PlatformType.Cracked
-                else -> PlatformType.Static
-            }
-            mutable.add(
-                Platform(
-                    id = nextId++,
-                    position = Offset(Random.nextFloat() * (width - HORIZONTAL_PADDING * 2) + HORIZONTAL_PADDING, nextY),
-                    width = 96f,
-                    height = 18f,
-                    type = type,
-                    direction = if (Random.nextBoolean()) 1f else -1f
-                )
-            )
-            nextY -= PLATFORM_SPACING
+
+        while (minY > highestY - WORLD_BUFFER) {
+            minY -= BASE_PLATFORM_SPACING
+            mutable.add(createPlatform(id = nextId++, y = minY, width = width))
         }
-        return mutable.filter { it.position.y - _uiState.value.cameraOffset < _uiState.value.worldHeight + 100f }
+        return mutable
     }
 
     private fun movePlatforms(platforms: List<Platform>, delta: Float, width: Float): List<Platform> {
         return platforms.map { platform ->
             if (platform.type != PlatformType.Moving) platform else {
-                val newX = platform.position.x + platform.direction * 50f * delta
-                val wraps = when {
-                    newX < HORIZONTAL_PADDING -> HORIZONTAL_PADDING
-                    newX > width - HORIZONTAL_PADDING -> width - HORIZONTAL_PADDING
-                    else -> newX
-                }
-                val newDirection = when {
-                    newX < HORIZONTAL_PADDING -> 1f
-                    newX > width - HORIZONTAL_PADDING -> -1f
+                val nextX = platform.position.x + platform.direction * 60f * delta
+                val direction = when {
+                    nextX < EDGE_PADDING -> 1f
+                    nextX > width - EDGE_PADDING -> -1f
                     else -> platform.direction
                 }
-                platform.copy(position = platform.position.copy(x = wraps), direction = newDirection)
+                platform.copy(
+                    position = platform.position.copy(x = nextX.coerceIn(EDGE_PADDING, width - EDGE_PADDING)),
+                    direction = direction
+                )
             }
         }
     }
 
     private fun moveEnemies(enemies: List<Enemy>, delta: Float, width: Float): List<Enemy> {
         return enemies.map { enemy ->
-            val x = enemy.position.x + enemy.speed * enemy.direction * delta
-            val newDirection = when {
-                x < HORIZONTAL_PADDING -> 1f
-                x > width - HORIZONTAL_PADDING -> -1f
+            val nextX = enemy.position.x + enemy.direction * enemy.speed * delta
+            val direction = when {
+                nextX < EDGE_PADDING -> 1f
+                nextX > width - EDGE_PADDING -> -1f
                 else -> enemy.direction
             }
-            enemy.copy(position = enemy.position.copy(x = x.coerceIn(HORIZONTAL_PADDING, width - HORIZONTAL_PADDING)), direction = newDirection)
-        }
-    }
-
-    private fun spawnCollectiblesIfNeeded(existing: List<Collectible>, platforms: List<Platform>): List<Collectible> {
-        if (existing.size > 6) return existing
-        val withEggs = existing.toMutableList()
-        platforms.filter { Random.nextFloat() < 0.08f && it.type == PlatformType.Static }.forEach { platform ->
-            if (withEggs.none { abs(it.position.y - platform.position.y) < 10f }) {
-                withEggs.add(
-                    Collectible(
-                        id = platform.id,
-                        position = platform.position.copy(y = platform.position.y - 24f)
-                    )
-                )
-            }
-        }
-        return withEggs
-    }
-
-    private fun spawnEnemiesIfNeeded(existing: List<Enemy>, platforms: List<Platform>): List<Enemy> {
-        if (existing.size > 3) return existing
-        val withBugs = existing.toMutableList()
-        platforms.filter { Random.nextFloat() < 0.05f }.forEach { platform ->
-            if (withBugs.none { abs(it.position.y - platform.position.y) < 40f }) {
-                withBugs.add(
-                    Enemy(
-                        id = platform.id,
-                        position = platform.position.copy(y = platform.position.y - 32f),
-                        direction = if (Random.nextBoolean()) 1f else -1f
-                    )
-                )
-            }
-        }
-        return withBugs
-    }
-
-    private fun generatePlatforms(base: Platform, width: Float, count: Int): List<Platform> {
-        return (1..count).map { index ->
-            val y = base.position.y - PLATFORM_SPACING * index
-            val type = when {
-                index % 5 == 0 -> PlatformType.Moving
-                index % 3 == 0 -> PlatformType.Cracked
-                else -> PlatformType.Static
-            }
-            Platform(
-                id = index,
-                position = Offset(Random.nextFloat() * (width - HORIZONTAL_PADDING * 2) + HORIZONTAL_PADDING, y),
-                width = 96f,
-                height = 18f,
-                type = type,
-                direction = if (Random.nextBoolean()) 1f else -1f
+            enemy.copy(
+                position = enemy.position.copy(x = nextX.coerceIn(EDGE_PADDING, width - EDGE_PADDING)),
+                direction = direction
             )
         }
     }
 
+    private fun spawnCollectibles(existing: List<Collectible>, platforms: List<Platform>): List<Collectible> {
+        if (existing.size >= 6) return existing
+        val mutable = existing.toMutableList()
+        platforms.filter { it.type == PlatformType.Static && Random.nextFloat() < 0.07f }
+            .forEach { platform ->
+                if (mutable.none { abs(it.position.y - platform.position.y) < 12f }) {
+                    mutable.add(
+                        Collectible(
+                            id = platform.id,
+                            position = platform.position.copy(y = platform.position.y - 26f)
+                        )
+                    )
+                }
+            }
+        return mutable
+    }
+
+    private fun spawnEnemies(existing: List<Enemy>, platforms: List<Platform>): List<Enemy> {
+        if (existing.size >= 4) return existing
+        val mutable = existing.toMutableList()
+        platforms.filter { Random.nextFloat() < 0.05f }
+            .forEach { platform ->
+                if (mutable.none { abs(it.position.y - platform.position.y) < 48f }) {
+                    mutable.add(
+                        Enemy(
+                            id = platform.id,
+                            position = platform.position.copy(y = platform.position.y - 34f),
+                            direction = if (Random.nextBoolean()) 1f else -1f,
+                            speed = 55f
+                        )
+                    )
+                }
+            }
+        return mutable
+    }
+
+    private fun generatePlatforms(width: Float, startY: Float): List<Platform> {
+        var y = startY
+        var id = 1
+        return buildList {
+            while (y > startY - WORLD_BUFFER) {
+                y -= BASE_PLATFORM_SPACING
+                add(createPlatform(id = id++, y = y, width = width))
+            }
+        }
+    }
+
+    private fun createPlatform(id: Int, y: Float, width: Float): Platform {
+        val type = when (Random.nextFloat()) {
+            in 0f..0.12f -> PlatformType.Moving
+            in 0.12f..0.22f -> PlatformType.Cracked
+            else -> PlatformType.Static
+        }
+        return Platform(
+            id = id,
+            position = Offset(
+                x = Random.nextFloat() * (width - EDGE_PADDING * 2f) + EDGE_PADDING,
+                y = y
+            ),
+            width = 104f,
+            height = 20f,
+            type = type,
+            direction = if (Random.nextBoolean()) 1f else -1f
+        )
+    }
+
     private fun endGame() {
         val current = _uiState.value
-        viewModelScope.launch {
-            settingsRepository.saveBestScore(current.score)
-        }
+        viewModelScope.launch { settingsRepository.saveBestScore(current.score) }
         _uiState.value = current.copy(status = GameStatus.GameOver)
     }
 
@@ -332,6 +336,7 @@ class GameViewModel @Inject constructor(
 
 private operator fun Offset.times(value: Float): Offset = Offset(x * value, y * value)
 
+// Ui state for the Doodle Jump inspired gameplay loop
 data class GameUiState(
     val status: GameStatus = GameStatus.Idle,
     val player: Player = Player(),
