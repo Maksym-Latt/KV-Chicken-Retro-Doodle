@@ -33,7 +33,7 @@ class GameViewModel @Inject constructor(
 
     fun startGame(worldW: Float, worldH: Float) {
 
-        val startPlatformY = worldH - 200f  // Платформа не слишком низко
+        val startPlatformY = worldH - 200f
 
         val basePlatform = Platform(
             id = 0,
@@ -45,11 +45,9 @@ class GameViewModel @Inject constructor(
 
         val platforms = mutableListOf(basePlatform)
 
-        // Игрок должен стоять ПРЯМО НА платформе
         val playerSize = GameScaling.playerSize
         val playerStartY = startPlatformY - basePlatform.height / 2f - playerSize / 2f
 
-        // Генерация остальных платформ
         var y = startPlatformY
         var id = 1
         while (y > startPlatformY - 3500f) {
@@ -78,7 +76,7 @@ class GameViewModel @Inject constructor(
             status = GameStatus.Playing,
             worldWidth = worldW,
             worldHeight = worldH,
-            cameraOffset = 0f,  // камера ровно снизу
+            cameraOffset = 0f,
             highestY = playerStartY,
             platforms = platforms,
             player = Player(
@@ -100,7 +98,6 @@ class GameViewModel @Inject constructor(
 
         var p = s.player
 
-        // ——— ОБНОВЛЕНИЕ ПЛАТФОРМ (движущиеся ездят из стороны в сторону)
         val updatedPlatforms = s.platforms.map { pl ->
             if (pl.type == PlatformType.Moving && !pl.isBroken) {
                 val candidateX = pl.position.x + pl.direction * GameConfig.movingPlatformSpeed * dt
@@ -114,17 +111,14 @@ class GameViewModel @Inject constructor(
             } else pl
         }
 
-        // ——— ДВИЖЕНИЕ ПО X (резкое как Doodle Jump)
         val vx = (p.velocity.x + (-s.tiltX * GameConfig.tiltAcceleration * dt))
             .coerceIn(-GameConfig.maxHorizontalSpeed, GameConfig.maxHorizontalSpeed)
 
-        // ——— ДВИЖЕНИЕ ПО Y
         val vy = p.velocity.y + GameConfig.gravity * dt
 
         var pos = p.position + Offset(vx * dt, vy * dt)
         var vel = Offset(vx, vy)
 
-        // ——— ПЕТЛЯ ПО X
         if (pos.x < -50f) pos = pos.copy(x = s.worldWidth + pos.x)
         if (pos.x > s.worldWidth) pos = pos.copy(x = pos.x - s.worldWidth)
 
@@ -133,7 +127,6 @@ class GameViewModel @Inject constructor(
         val platformBuffer = GameScaling.platformCollisionBuffer
         val platformsAfterCollision = updatedPlatforms.toMutableList()
 
-        // ——— СТОЛКНОВЕНИЕ С ПЛАТФОРМАМИ (как Doodle Jump)
         updatedPlatforms.forEachIndexed { index, pl ->
             if (pl.isBroken) return@forEachIndexed
             val top = pl.position.y - pl.height / 2f
@@ -153,23 +146,17 @@ class GameViewModel @Inject constructor(
 
         val alivePlatforms = platformsAfterCollision.filterNot { it.type == PlatformType.Cracked && it.isBroken }
 
-        // ——— КАМЕРА (самое важное!)
         var cam = s.cameraOffset
-
-        // пока игрок НИЖЕ половины — камера не двигается
         val playerScreenY = pos.y - cam
 
         if (playerScreenY < s.worldHeight * 0.4f) {
-            // двигаем камеру вверх
             cam = pos.y - s.worldHeight * 0.4f
         }
 
-        // ——— если игрок упал ниже экрана → конец игры
         if (playerScreenY > s.worldHeight + 100f) {
             endGame(); return
         }
 
-        // ——— обновляем лучший Y
         val highest = min(s.highestY, pos.y)
 
         _ui.value = s.copy(
@@ -200,7 +187,6 @@ class GameViewModel @Inject constructor(
 
 private operator fun Offset.times(value: Float): Offset = Offset(x * value, y * value)
 
-// Ui state for the Doodle Jump inspired gameplay loop
 data class GameUiState(
     val status: GameStatus = GameStatus.Idle,
     val player: Player = Player(),

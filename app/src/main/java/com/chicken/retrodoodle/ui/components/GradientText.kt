@@ -33,14 +33,10 @@ fun GradientText(
 
     size: TextUnit = 48.sp,
     stroke: Float = 8f,
-    strokeColor: Color = Color(0xff332000),
+    strokeColor: Color = Color(0xff040300),
 
-    brush: Brush = Brush.horizontalGradient(
-        colors = listOf(
-            Color(0xffffffff),
-            Color(0xffffffff),
-            Color(0xfffffffe)
-        )
+    brush: Brush  = Brush.verticalGradient(
+        listOf(Color(0xFFAEB0FD), Color(0xFFAEB0FD))
     )
 ) {
     val typeFace = remember {

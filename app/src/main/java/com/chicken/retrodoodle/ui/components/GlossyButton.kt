@@ -95,7 +95,7 @@ fun GlossyButton(
                     GradientText(
                         text = text,
                         size = textSize,
-                        stroke = 5f,
+                        stroke = 10f,
                         modifier = Modifier.alpha(alpha),
                         expand = false,
                         brush = Brush.verticalGradient(
@@ -109,7 +109,7 @@ fun GlossyButton(
                 GradientText(
                     text = text,
                     size = textSize,
-                    stroke = 5f,
+                    stroke = 10f,
                     modifier = Modifier.alpha(alpha),
                     expand = false,
                     brush = Brush.verticalGradient(

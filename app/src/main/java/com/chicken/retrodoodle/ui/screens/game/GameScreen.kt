@@ -72,7 +72,14 @@ fun GameScreen(
             }
         }
 
-        // ---------- ЗАГРУЖАЕМ ВСЕ БИТМАПЫ ЗАРАНЕЕ ----------
+        Image(
+            painter = painterResource(id = R.drawable.bg_game),
+            contentDescription = null,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop
+        )
+
+
         val plateGreen = ImageBitmap.imageResource(R.drawable.plate_green)
         val plateBlue = ImageBitmap.imageResource(R.drawable.plate_blue)
         val plateBrown = ImageBitmap.imageResource(R.drawable.plate_brown)
@@ -80,7 +87,6 @@ fun GameScreen(
         val bugBmp = ImageBitmap.imageResource(R.drawable.item_bug)
         val playerBmp = ImageBitmap.imageResource(state.player.skin.sprite)
 
-        // ---------- ГЕЙМ ЛУП ----------
         LaunchedEffect(state.status) {
             var last = 0L
             while (isActive && state.status == GameStatus.Playing) {
@@ -94,14 +100,13 @@ fun GameScreen(
             }
         }
 
-        // ---------- ACCELEROMETER ----------
         DisposableEffect(state.status) {
             val mgr = context.getSystemService(SensorManager::class.java)
             val sensor = mgr?.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
 
             val listener = object : SensorEventListener {
                 override fun onSensorChanged(e: SensorEvent?) {
-                    val tilt = -(e?.values?.getOrNull(0) ?: 0f) / 6f
+                    val tilt = (e?.values?.getOrNull(0) ?: 0f) / 6f
                     viewModel.updateTilt(tilt)
                 }
                 override fun onAccuracyChanged(s: Sensor?, a: Int) {}
@@ -113,10 +118,8 @@ fun GameScreen(
             onDispose { mgr?.unregisterListener(listener) }
         }
 
-        // ---------- CANVAS РЕНДЕР ----------
         Canvas(Modifier.fillMaxSize()) {
 
-            drawRect(color = Color(0xFF0E1C2A))
             val cam = state.cameraOffset
 
             state.platforms.forEach { p ->
@@ -176,7 +179,6 @@ fun GameScreen(
             )
 
             if (GameConfig.debugCollisionOverlay) {
-                // Платформы
                 state.platforms.forEach { platform ->
                     if (platform.isBroken) return@forEach
                     drawRect(
@@ -190,7 +192,6 @@ fun GameScreen(
                     )
                 }
 
-                // Игрок
                 val half = GameScaling.playerSize / 2f
                 drawRect(
                     color = Color.Green.copy(alpha = 0.4f),
@@ -208,7 +209,6 @@ fun GameScreen(
             score = state.score,
             eggs = state.eggs,
             onPause = { viewModel.pauseGame() },
-            modifier = Modifier.align(Alignment.TopCenter)
         )
 
         when (state.status) {
@@ -216,8 +216,12 @@ fun GameScreen(
                 onStart = { viewModel.startGame(worldWidthPx, worldHeightPx) },
                 modifier = Modifier.align(Alignment.Center)
             )
-            GameStatus.Paused -> GamePauseOverlay(
-                onContinue = { viewModel.resumeGame() },
+            GamePauseOverlay(
+                musicOn = settings.musicEnabled,
+                soundsOn = settings.soundsEnabled,
+                onToggleMusic = { viewModel.toggleMusic() },
+                onToggleSounds = { viewModel.toggleSounds() },
+                onResume = { viewModel.resumeGame() },
                 onRestart = { viewModel.startGame(worldWidthPx, worldHeightPx) },
                 onMenu = { navController.navigateUp() },
                 modifier = Modifier.align(Alignment.Center)
