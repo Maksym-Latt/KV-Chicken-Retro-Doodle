@@ -32,6 +32,7 @@ import androidx.navigation.NavHostController
 import com.chicken.retrodoodle.R
 import com.chicken.retrodoodle.audio.AudioController
 import com.chicken.retrodoodle.core.model.GameStatus
+import com.chicken.retrodoodle.core.model.GameScaling
 import com.chicken.retrodoodle.core.model.PlatformType
 import com.chicken.retrodoodle.core.model.PlayerSize
 import com.chicken.retrodoodle.ui.components.GameHud
@@ -128,22 +129,31 @@ fun GameScreen(
                 }
 
                 state.collectibles.forEach { egg ->
+                    val collectibleHalf = GameScaling.collectibleSize / 2f
                     Image(
                         painter = painterResource(id = R.drawable.item_gold_egg),
                         contentDescription = null,
                         modifier = Modifier
-                            .offset(x = (egg.position.x - 10f).dp, y = (egg.position.y - cameraOffset - 12f).dp)
-                            .size(24.dp)
+                            .offset(
+                                x = (egg.position.x - collectibleHalf).dp,
+                                y = (egg.position.y - cameraOffset - collectibleHalf).dp
+                            )
+                            .size(GameScaling.collectibleSizeDp)
                     )
                 }
 
                 state.enemies.forEach { enemy ->
+                    val enemyHalfWidth = GameScaling.enemyWidth / 2f
+                    val enemyHalfHeight = GameScaling.enemyHeight / 2f
                     Image(
                         painter = painterResource(id = R.drawable.item_bug),
                         contentDescription = null,
                         modifier = Modifier
-                            .offset(x = (enemy.position.x - 16f).dp, y = (enemy.position.y - cameraOffset - 12f).dp)
-                            .size(32.dp)
+                            .offset(
+                                x = (enemy.position.x - enemyHalfWidth).dp,
+                                y = (enemy.position.y - cameraOffset - enemyHalfHeight).dp
+                            )
+                            .size(GameScaling.enemySizeDp)
                     )
                 }
 
@@ -152,8 +162,8 @@ fun GameScreen(
                     contentDescription = null,
                     modifier = Modifier
                         .offset(
-                            x = (state.player.position.x - PlayerSize.value / 2f).dp,
-                            y = (state.player.position.y - cameraOffset - PlayerSize.value / 2f).dp
+                            x = (state.player.position.x - GameScaling.playerSize / 2f).dp,
+                            y = (state.player.position.y - cameraOffset - GameScaling.playerSize / 2f).dp
                         )
                         .size(PlayerSize),
                     contentScale = ContentScale.Fit
