@@ -16,7 +16,7 @@ fun AppRoot(audio: AudioController, modifier: Modifier = Modifier) {
     NavHost(
         navController = navController,
         startDestination = AppDestination.Menu,
-        modifier = modifier
+        modifier = modifier.fillMaxSize()
     ) {
         composable(AppDestination.Menu) {
             MenuScreen(navController = navController, audio = audio)

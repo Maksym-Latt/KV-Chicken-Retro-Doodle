@@ -6,10 +6,10 @@ import androidx.lifecycle.viewModelScope
 import com.chicken.retrodoodle.core.model.Collectible
 import com.chicken.retrodoodle.core.model.Enemy
 import com.chicken.retrodoodle.core.model.GameStatus
+import com.chicken.retrodoodle.core.model.GameScaling
 import com.chicken.retrodoodle.core.model.Platform
 import com.chicken.retrodoodle.core.model.PlatformType
 import com.chicken.retrodoodle.core.model.Player
-import com.chicken.retrodoodle.core.model.PlayerSize
 import com.chicken.retrodoodle.data.settings.SettingsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -22,13 +22,20 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-private const val BASE_PLATFORM_SPACING = 110f
+private val BASE_PLATFORM_SPACING = 110f * GameScaling.itemScale
 private const val HORIZONTAL_TILT_ACCEL = 320f
 private const val MAX_HORIZONTAL_SPEED = 420f
 private const val GRAVITY = 1250f
 private const val JUMP_FORCE = 680f
-private const val EDGE_PADDING = 12f
-private const val WORLD_BUFFER = 900f
+private val EDGE_PADDING = 12f * GameScaling.itemScale
+private val WORLD_BUFFER = 900f * GameScaling.itemScale
+private val START_OFFSET = 120f * GameScaling.itemScale
+private val PLAYER_PLATFORM_GAP = 6f * GameScaling.itemScale
+private val PLAYER_COLLISION_TOLERANCE = GameScaling.platformCollisionBuffer
+private val COLLECTIBLE_VERTICAL_OFFSET = 26f * GameScaling.itemScale
+private val COLLECTIBLE_MIN_DISTANCE = 12f * GameScaling.itemScale
+private val ENEMY_VERTICAL_OFFSET = 34f * GameScaling.itemScale
+private val ENEMY_MIN_DISTANCE = 48f * GameScaling.itemScale
 
 @HiltViewModel
 class GameViewModel @Inject constructor(
@@ -58,12 +65,12 @@ class GameViewModel @Inject constructor(
     }
 
     fun startGame(worldWidth: Float, worldHeight: Float) {
-        val startY = worldHeight - 120f
+        val startY = worldHeight - START_OFFSET
         val basePlatform = Platform(
             id = 0,
             position = Offset(worldWidth / 2f, startY),
-            width = 110f,
-            height = 20f,
+            width = GameScaling.platformWidth,
+            height = GameScaling.platformHeight,
             type = PlatformType.Static
         )
         val platforms = buildList {
@@ -74,7 +81,10 @@ class GameViewModel @Inject constructor(
         _uiState.value = GameUiState(
             status = GameStatus.Playing,
             player = Player(
-                position = Offset(worldWidth / 2f, startY - PlayerSize.value / 2f - 6f),
+                position = Offset(
+                    worldWidth / 2f,
+                    startY - GameScaling.playerSize / 2f - PLAYER_PLATFORM_GAP
+                ),
                 velocity = Offset.Zero,
                 skin = _uiState.value.player.skin
             ),
@@ -113,7 +123,7 @@ class GameViewModel @Inject constructor(
 
         val nextPos = player.position + newVelocity * delta
         val wrappedX = when {
-            nextPos.x < -PlayerSize.value -> state.worldWidth + nextPos.x
+            nextPos.x < -GameScaling.playerSize -> state.worldWidth + nextPos.x
             nextPos.x > state.worldWidth -> nextPos.x - state.worldWidth
             else -> nextPos.x
         }
@@ -121,16 +131,19 @@ class GameViewModel @Inject constructor(
         var updatedVelocity = newVelocity
 
         val platforms = state.platforms.toMutableList()
-        val previousBottom = player.position.y + PlayerSize.value / 2f
-        val newBottom = updatedPos.y + PlayerSize.value / 2f
+        val previousBottom = player.position.y + GameScaling.playerSize / 2f
+        val newBottom = updatedPos.y + GameScaling.playerSize / 2f
 
         platforms.firstOrNull { platform ->
             val top = platform.position.y - platform.height / 2f
             previousBottom <= top && newBottom >= top && updatedVelocity.y > 0f &&
-                abs(updatedPos.x - platform.position.x) < platform.width / 2f + PlayerSize.value / 2f - 4f
+                abs(updatedPos.x - platform.position.x) <
+                platform.width / 2f + GameScaling.playerSize / 2f - PLAYER_COLLISION_TOLERANCE
         }?.let { platform ->
             updatedVelocity = updatedVelocity.copy(y = -JUMP_FORCE)
-            updatedPos = updatedPos.copy(y = platform.position.y - platform.height / 2f - PlayerSize.value / 2f)
+            updatedPos = updatedPos.copy(
+                y = platform.position.y - platform.height / 2f - GameScaling.playerSize / 2f
+            )
             if (platform.type == PlatformType.Cracked) {
                 platforms.remove(platform)
             }
@@ -140,8 +153,8 @@ class GameViewModel @Inject constructor(
         val collectibles = state.collectibles.toMutableList()
 
         enemies.firstOrNull { enemy ->
-            abs(enemy.position.x - updatedPos.x) < 16f &&
-                abs(enemy.position.y - updatedPos.y) < 18f
+            abs(enemy.position.x - updatedPos.x) < GameScaling.enemyCollisionHalfWidth &&
+                abs(enemy.position.y - updatedPos.y) < GameScaling.enemyCollisionHalfHeight
         }?.let { hit ->
             if (updatedVelocity.y > 0f) {
                 enemies.remove(hit)
@@ -154,8 +167,8 @@ class GameViewModel @Inject constructor(
 
         var eggs = state.eggs
         collectibles.firstOrNull { egg ->
-            abs(egg.position.x - updatedPos.x) < 14f &&
-                abs(egg.position.y - updatedPos.y) < 16f
+            abs(egg.position.x - updatedPos.x) < GameScaling.collectibleCollisionHalfWidth &&
+                abs(egg.position.y - updatedPos.y) < GameScaling.collectibleCollisionHalfHeight
         }?.let { found ->
             eggs += 1
             collectibles.remove(found)
@@ -172,7 +185,7 @@ class GameViewModel @Inject constructor(
         val extendedCollectibles = spawnCollectibles(collectibles, extendedPlatforms)
         val extendedEnemies = spawnEnemies(movedEnemies, extendedPlatforms)
 
-        if (updatedPos.y - cameraOffset > state.worldHeight + PlayerSize.value) {
+        if (updatedPos.y - cameraOffset > state.worldHeight + GameScaling.playerSize) {
             endGame()
             return
         }
@@ -260,11 +273,11 @@ class GameViewModel @Inject constructor(
         val mutable = existing.toMutableList()
         platforms.filter { it.type == PlatformType.Static && Random.nextFloat() < 0.07f }
             .forEach { platform ->
-                if (mutable.none { abs(it.position.y - platform.position.y) < 12f }) {
+                if (mutable.none { abs(it.position.y - platform.position.y) < COLLECTIBLE_MIN_DISTANCE }) {
                     mutable.add(
                         Collectible(
                             id = platform.id,
-                            position = platform.position.copy(y = platform.position.y - 26f)
+                            position = platform.position.copy(y = platform.position.y - COLLECTIBLE_VERTICAL_OFFSET)
                         )
                     )
                 }
@@ -277,11 +290,11 @@ class GameViewModel @Inject constructor(
         val mutable = existing.toMutableList()
         platforms.filter { Random.nextFloat() < 0.05f }
             .forEach { platform ->
-                if (mutable.none { abs(it.position.y - platform.position.y) < 48f }) {
+                if (mutable.none { abs(it.position.y - platform.position.y) < ENEMY_MIN_DISTANCE }) {
                     mutable.add(
                         Enemy(
                             id = platform.id,
-                            position = platform.position.copy(y = platform.position.y - 34f),
+                            position = platform.position.copy(y = platform.position.y - ENEMY_VERTICAL_OFFSET),
                             direction = if (Random.nextBoolean()) 1f else -1f,
                             speed = 55f
                         )
@@ -314,8 +327,8 @@ class GameViewModel @Inject constructor(
                 x = Random.nextFloat() * (width - EDGE_PADDING * 2f) + EDGE_PADDING,
                 y = y
             ),
-            width = 104f,
-            height = 20f,
+            width = GameScaling.platformWidth,
+            height = GameScaling.platformHeight,
             type = type,
             direction = if (Random.nextBoolean()) 1f else -1f
         )
