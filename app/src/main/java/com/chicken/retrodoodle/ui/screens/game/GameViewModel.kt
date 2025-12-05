@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.chicken.retrodoodle.core.model.Collectible
 import com.chicken.retrodoodle.core.model.Enemy
+import com.chicken.retrodoodle.core.model.GameConfig
 import com.chicken.retrodoodle.core.model.GameStatus
 import com.chicken.retrodoodle.core.model.GameScaling
 import com.chicken.retrodoodle.core.model.Platform
@@ -30,11 +31,6 @@ class GameViewModel @Inject constructor(
     private val _ui = MutableStateFlow(GameUiState())
     val uiState: StateFlow<GameUiState> = _ui.asStateFlow()
 
-    private val gravity = 1800f       // ускорение вниз
-    private val jumpForce = 900f      // сила прыжка (как Doodle Jump)
-    private val tiltAccel = 900f      // реакция на наклон — резкая
-    private val maxSpeedX = 550f      // как Doodle Jump
-
     fun startGame(worldW: Float, worldH: Float) {
 
         val startPlatformY = worldH - 200f  // Платформа не слишком низко
@@ -42,15 +38,15 @@ class GameViewModel @Inject constructor(
         val basePlatform = Platform(
             id = 0,
             position = Offset(worldW / 2f, startPlatformY),
-            width = 140f,
-            height = 36f,
+            width = GameScaling.platformWidth,
+            height = GameScaling.platformHeight,
             type = PlatformType.Static
         )
 
         val platforms = mutableListOf(basePlatform)
 
         // Игрок должен стоять ПРЯМО НА платформе
-        val playerSize = 64f
+        val playerSize = GameScaling.playerSize
         val playerStartY = startPlatformY - basePlatform.height / 2f - playerSize / 2f
 
         // Генерация остальных платформ
@@ -58,15 +54,23 @@ class GameViewModel @Inject constructor(
         var id = 1
         while (y > startPlatformY - 3500f) {
             y -= (150..230).random()
+            val typeRoll = Random.nextFloat()
+            val type = when {
+                typeRoll < 0.15f -> PlatformType.Moving
+                typeRoll < 0.35f -> PlatformType.Cracked
+                else -> PlatformType.Static
+            }
+            val dir = if (Random.nextBoolean()) 1f else -1f
             platforms += Platform(
                 id = id++,
                 position = Offset(
-                    x = (30..(worldW - 30).toInt()).random().toFloat(),
+                    x = (GameScaling.platformWidth.toInt()..(worldW - GameScaling.platformWidth).toInt()).random().toFloat(),
                     y = y
                 ),
-                width = 140f,
-                height = 36f,
-                type = PlatformType.Static
+                width = GameScaling.platformWidth,
+                height = GameScaling.platformHeight,
+                type = type,
+                direction = dir,
             )
         }
 
@@ -96,12 +100,26 @@ class GameViewModel @Inject constructor(
 
         var p = s.player
 
+        // ——— ОБНОВЛЕНИЕ ПЛАТФОРМ (движущиеся ездят из стороны в сторону)
+        val updatedPlatforms = s.platforms.map { pl ->
+            if (pl.type == PlatformType.Moving && !pl.isBroken) {
+                val candidateX = pl.position.x + pl.direction * GameConfig.movingPlatformSpeed * dt
+                val halfWidth = pl.width / 2f
+                val (newX, newDir) = when {
+                    candidateX - halfWidth < 0f -> halfWidth to 1f
+                    candidateX + halfWidth > s.worldWidth -> s.worldWidth - halfWidth to -1f
+                    else -> candidateX to pl.direction
+                }
+                pl.copy(position = pl.position.copy(x = newX), direction = newDir)
+            } else pl
+        }
+
         // ——— ДВИЖЕНИЕ ПО X (резкое как Doodle Jump)
-        val vx = (p.velocity.x + (-s.tiltX * tiltAccel * dt))
-            .coerceIn(-maxSpeedX, maxSpeedX)
+        val vx = (p.velocity.x + (-s.tiltX * GameConfig.tiltAcceleration * dt))
+            .coerceIn(-GameConfig.maxHorizontalSpeed, GameConfig.maxHorizontalSpeed)
 
         // ——— ДВИЖЕНИЕ ПО Y
-        val vy = p.velocity.y + gravity * dt
+        val vy = p.velocity.y + GameConfig.gravity * dt
 
         var pos = p.position + Offset(vx * dt, vy * dt)
         var vel = Offset(vx, vy)
@@ -110,19 +128,30 @@ class GameViewModel @Inject constructor(
         if (pos.x < -50f) pos = pos.copy(x = s.worldWidth + pos.x)
         if (pos.x > s.worldWidth) pos = pos.copy(x = pos.x - s.worldWidth)
 
-        // ——— СТОЛКНОВЕНИЕ С ПЛАТФОРМАМИ (как Doodle Jump)
-        s.platforms.forEach { pl ->
-            val top = pl.position.y - pl.height / 2f
-            val previousY = p.position.y + 32
-            val currentY = pos.y + 32
+        val playerHalf = GameScaling.playerSize / 2f
+        val collisionHalfWidth = GameScaling.playerCollisionRadius
+        val platformBuffer = GameScaling.platformCollisionBuffer
+        val platformsAfterCollision = updatedPlatforms.toMutableList()
 
-            if (previousY <= top && currentY >= top && vel.y > 0 &&
-                kotlin.math.abs(pos.x - pl.position.x) < pl.width / 2 + 25
-            ) {
-                vel = vel.copy(y = -jumpForce)
-                pos = pos.copy(y = top - 32f)
+        // ——— СТОЛКНОВЕНИЕ С ПЛАТФОРМАМИ (как Doodle Jump)
+        updatedPlatforms.forEachIndexed { index, pl ->
+            if (pl.isBroken) return@forEachIndexed
+            val top = pl.position.y - pl.height / 2f
+            val previousBottom = p.position.y + playerHalf
+            val currentBottom = pos.y + playerHalf
+            val horizontalOverlap = abs(pos.x - pl.position.x) <= pl.width / 2f + collisionHalfWidth - platformBuffer
+
+            if (previousBottom <= top && currentBottom >= top && vel.y > 0 && horizontalOverlap) {
+                vel = vel.copy(y = -GameConfig.jumpForce)
+                pos = pos.copy(y = top - playerHalf)
+
+                if (pl.type == PlatformType.Cracked) {
+                    platformsAfterCollision[index] = pl.copy(isBroken = true)
+                }
             }
         }
+
+        val alivePlatforms = platformsAfterCollision.filterNot { it.type == PlatformType.Cracked && it.isBroken }
 
         // ——— КАМЕРА (самое важное!)
         var cam = s.cameraOffset
@@ -145,6 +174,7 @@ class GameViewModel @Inject constructor(
 
         _ui.value = s.copy(
             player = p.copy(position = pos, velocity = vel),
+            platforms = alivePlatforms,
             cameraOffset = cam,
             highestY = highest,
             score = ((s.worldHeight - highest) / 10).toInt()
