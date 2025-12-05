@@ -10,6 +10,7 @@ import com.chicken.retrodoodle.audio.AudioController
 import com.chicken.retrodoodle.ui.screens.menu.MenuScreen
 import com.chicken.retrodoodle.ui.screens.game.GameScreen
 import com.chicken.retrodoodle.ui.screens.skins.SkinsScreen
+import com.chicken.retrodoodle.ui.screens.settings.SettingsScreen
 
 @Composable
 fun AppRoot(audio: AudioController, modifier: Modifier = Modifier) {
@@ -27,6 +28,9 @@ fun AppRoot(audio: AudioController, modifier: Modifier = Modifier) {
         }
         composable(AppDestination.Skins) {
             SkinsScreen(navController = navController, audio = audio)
+        }
+        composable(AppDestination.Settings) {
+            SettingsScreen(navController = navController, audio = audio)
         }
     }
 }

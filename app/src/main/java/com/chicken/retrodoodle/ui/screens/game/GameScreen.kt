@@ -44,8 +44,8 @@ import com.chicken.retrodoodle.core.model.GameConfig
 import com.chicken.retrodoodle.core.model.GameStatus
 import com.chicken.retrodoodle.core.model.GameScaling
 import com.chicken.retrodoodle.core.model.PlatformType
-import com.chicken.retrodoodle.core.model.PlayerSize
 import com.chicken.retrodoodle.ui.components.GameHud
+import com.chicken.retrodoodle.ui.screens.settings.SettingsViewModel
 import kotlinx.coroutines.isActive
 import kotlin.math.roundToInt
 
@@ -56,6 +56,8 @@ fun GameScreen(
     viewModel: GameViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
+    val settingsViewModel: SettingsViewModel = hiltViewModel()
+    val settings by settingsViewModel.uiState.collectAsState()
     val context = LocalContext.current
     val density = LocalDensity.current
 
@@ -65,12 +67,6 @@ fun GameScreen(
 
         val worldWidthPx = with(density) { maxWidth.toPx() }
         val worldHeightPx = with(density) { maxHeight.toPx() }
-
-        LaunchedEffect(worldWidthPx, worldHeightPx) {
-            if (state.status == GameStatus.Idle && worldHeightPx > 0f) {
-                viewModel.startGame(worldWidthPx, worldHeightPx)
-            }
-        }
 
         Image(
             painter = painterResource(id = R.drawable.bg_game),
@@ -213,14 +209,18 @@ fun GameScreen(
 
         when (state.status) {
             GameStatus.Idle -> GameIntroOverlay(
-                onStart = { viewModel.startGame(worldWidthPx, worldHeightPx) },
+                onStart = {
+                    if (worldWidthPx > 0f && worldHeightPx > 0f) {
+                        viewModel.startGame(worldWidthPx, worldHeightPx)
+                    }
+                },
                 modifier = Modifier.align(Alignment.Center)
             )
             GamePauseOverlay(
                 musicOn = settings.musicEnabled,
                 soundsOn = settings.soundsEnabled,
-                onToggleMusic = { viewModel.toggleMusic() },
-                onToggleSounds = { viewModel.toggleSounds() },
+                onToggleMusic = { settingsViewModel.toggleMusic() },
+                onToggleSounds = { settingsViewModel.toggleSounds() },
                 onResume = { viewModel.resumeGame() },
                 onRestart = { viewModel.startGame(worldWidthPx, worldHeightPx) },
                 onMenu = { navController.navigateUp() },
