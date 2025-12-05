@@ -19,6 +19,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -35,8 +36,6 @@ import com.chicken.retrodoodle.core.model.PlatformType
 import com.chicken.retrodoodle.core.model.PlayerSize
 import com.chicken.retrodoodle.ui.components.GameHud
 import kotlinx.coroutines.isActive
-import kotlinx.coroutines.yield
-import kotlin.math.max
 
 @Composable
 fun GameScreen(
@@ -50,7 +49,6 @@ fun GameScreen(
     LaunchedEffect(Unit) { audio.playGameMusic() }
 
     var lastEggs by remember { mutableStateOf(state.eggs) }
-
     LaunchedEffect(state.eggs) {
         if (state.eggs > lastEggs) {
             audio.playCollectEgg()
@@ -69,13 +67,15 @@ fun GameScreen(
         }
 
         LaunchedEffect(state.status) {
-            var lastTime = System.nanoTime()
+            var lastTime = 0L
             while (isActive && viewModel.uiState.value.status == GameStatus.Playing) {
-                val now = System.nanoTime()
-                val delta = (now - lastTime) / 1_000_000_000f
-                viewModel.updateFrame(delta)
-                lastTime = now
-                yield()
+                withFrameNanos { frameTime ->
+                    if (lastTime != 0L) {
+                        val delta = (frameTime - lastTime) / 1_000_000_000f
+                        viewModel.updateFrame(delta)
+                    }
+                    lastTime = frameTime
+                }
             }
         }
 
@@ -103,7 +103,7 @@ fun GameScreen(
                     contentDescription = null,
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop,
-                    alpha = 0.6f
+                    alpha = 0.65f
                 )
 
                 val cameraOffset = state.cameraOffset
@@ -181,7 +181,7 @@ fun GameScreen(
 
                     GameStatus.GameOver -> GameOverOverlay(
                         score = state.score,
-                        bestScore = max(state.bestScore, state.score),
+                        bestScore = maxOf(state.bestScore, state.score),
                         onRetry = { viewModel.startGame(worldWidth, worldHeight) },
                         onMenu = { navController.navigateUp() },
                         modifier = Modifier.align(Alignment.Center)
