@@ -25,7 +25,7 @@ fun AppRoot(audio: AudioController, modifier: Modifier = Modifier) {
             GameScreen(navController = navController, audio = audio)
         }
         composable(AppDestination.Skins) {
-            SkinsScreen(navController = navController)
+            SkinsScreen(navController = navController, audio = audio)
         }
     }
 }

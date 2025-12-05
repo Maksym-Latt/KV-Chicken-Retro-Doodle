@@ -6,6 +6,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -16,7 +17,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -35,9 +35,8 @@ import com.chicken.retrodoodle.R
 import com.chicken.retrodoodle.audio.AudioController
 import com.chicken.retrodoodle.core.model.PlayerSkin
 import com.chicken.retrodoodle.ui.components.GlossyButton
-import com.chicken.retrodoodle.ui.components.PixelButton
-import com.chicken.retrodoodle.ui.components.SkinCard
 import com.chicken.retrodoodle.ui.components.GradientText
+import com.chicken.retrodoodle.ui.screens.skins.SkinUiModel
 
 @Composable
 fun SkinsScreen(
@@ -125,7 +124,7 @@ fun SkinsScreen(
 }
 @Composable
 fun SkinsGrid(
-    skins: List<PlayerSkin>,
+    skins: List<SkinUiModel>,
     selected: PlayerSkin,
     onSelect: (PlayerSkin) -> Unit,
     onBuy: (PlayerSkin) -> Unit
@@ -141,9 +140,9 @@ fun SkinsGrid(
                 rowSkins.forEach { skin ->
                     SkinCard(
                         skin = skin,
-                        isSelected = skin == selected,
-                        onSelect = { onSelect(skin) },
-                        onBuy = { onBuy(skin) }
+                        isSelected = skin.skin == selected,
+                        onSelect = { onSelect(skin.skin) },
+                        onBuy = { onBuy(skin.skin) }
                     )
                 }
             }
@@ -152,7 +151,7 @@ fun SkinsGrid(
 }
 @Composable
 fun SkinCard(
-    skin: PlayerSkin,
+    skin: SkinUiModel,
     isSelected: Boolean,
     onSelect: () -> Unit,
     onBuy: () -> Unit
