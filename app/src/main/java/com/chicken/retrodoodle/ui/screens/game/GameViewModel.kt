@@ -336,7 +336,11 @@ class GameViewModel @Inject constructor(
 
     private fun endGame() {
         val current = _uiState.value
-        viewModelScope.launch { settingsRepository.saveBestScore(current.score) }
+        if (current.status == GameStatus.GameOver) return
+        viewModelScope.launch {
+            settingsRepository.saveBestScore(current.score)
+            settingsRepository.addEggs(current.eggs)
+        }
         _uiState.value = current.copy(status = GameStatus.GameOver)
     }
 

@@ -3,6 +3,7 @@ package com.chicken.retrodoodle.data.settings
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -26,6 +27,7 @@ class DataStoreSettingsRepository @Inject constructor(
     private val soundKey = intPreferencesKey("sound_volume")
     private val bestScoreKey = intPreferencesKey("best_score")
     private val skinKey = intPreferencesKey("selected_skin")
+    private val eggsKey = intPreferencesKey("eggs_balance")
 
     override val musicVolumeFlow: Flow<Int> = context.dataStore.data.map { prefs ->
         prefs[musicKey] ?: 80
@@ -41,6 +43,16 @@ class DataStoreSettingsRepository @Inject constructor(
 
     override val selectedSkinFlow: Flow<PlayerSkin> = context.dataStore.data.map { prefs ->
         PlayerSkin.values().getOrNull(prefs[skinKey] ?: 0) ?: PlayerSkin.Classic
+    }
+
+    override val eggsFlow: Flow<Int> = context.dataStore.data.map { prefs ->
+        prefs[eggsKey] ?: 0
+    }
+
+    override val ownedSkinsFlow: Flow<Set<PlayerSkin>> = context.dataStore.data.map { prefs ->
+        PlayerSkin.values().filter { skin ->
+            prefs[ownedKey(skin)] ?: (skin == PlayerSkin.Classic)
+        }.toSet()
     }
 
     override suspend fun setMusicVolume(percent: Int) {
@@ -67,4 +79,33 @@ class DataStoreSettingsRepository @Inject constructor(
             prefs[skinKey] = skin.ordinal
         }
     }
+
+    override suspend fun addEggs(amount: Int) {
+        if (amount <= 0) return
+        context.dataStore.edit { prefs ->
+            val current = prefs[eggsKey] ?: 0
+            prefs[eggsKey] = (current + amount).coerceAtLeast(0)
+        }
+    }
+
+    override suspend fun spendEggs(amount: Int): Boolean {
+        if (amount <= 0) return true
+        var success = false
+        context.dataStore.edit { prefs ->
+            val current = prefs[eggsKey] ?: 0
+            if (current >= amount) {
+                prefs[eggsKey] = current - amount
+                success = true
+            }
+        }
+        return success
+    }
+
+    override suspend fun unlockSkin(skin: PlayerSkin) {
+        context.dataStore.edit { prefs ->
+            prefs[ownedKey(skin)] = true
+        }
+    }
+
+    private fun ownedKey(skin: PlayerSkin) = booleanPreferencesKey("skin_owned_${skin.name}")
 }

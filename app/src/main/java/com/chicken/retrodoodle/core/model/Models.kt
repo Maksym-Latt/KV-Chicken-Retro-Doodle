@@ -1,11 +1,11 @@
 package com.chicken.retrodoodle.core.model
 
+import android.os.Parcelable
 import androidx.annotation.DrawableRes
 import androidx.compose.ui.geometry.Offset
 import com.chicken.retrodoodle.R
-import kotlinx.parcelize.Parcelize
-import android.os.Parcelable
 import com.chicken.retrodoodle.core.model.GameScaling.playerSizeDp
+import kotlinx.parcelize.Parcelize
 
 enum class PlatformType { Static, Moving, Cracked }
 
@@ -37,11 +37,14 @@ data class Player(
 )
 
 @Parcelize
-enum class PlayerSkin(@DrawableRes val sprite: Int) : Parcelable {
-    Classic(R.drawable.chicken_1),
-    Blue(R.drawable.chicken_2),
-    Red(R.drawable.chicken_3),
-    Knight(R.drawable.chicken_4);
+enum class PlayerSkin(
+    @DrawableRes val sprite: Int,
+    val price: Int,
+) : Parcelable {
+    Classic(R.drawable.chicken_1, price = 0),
+    Blue(R.drawable.chicken_2, price = 40),
+    Red(R.drawable.chicken_3, price = 60),
+    Knight(R.drawable.chicken_4, price = 90);
 
     val title: String
         get() = when (this) {
@@ -50,6 +53,9 @@ enum class PlayerSkin(@DrawableRes val sprite: Int) : Parcelable {
             Red -> "Red Pixel Hen"
             Knight -> "Knight Chick"
         }
+
+    val image: Int
+        get() = sprite
 }
 
 enum class GameStatus { Idle, Playing, Paused, GameOver }
