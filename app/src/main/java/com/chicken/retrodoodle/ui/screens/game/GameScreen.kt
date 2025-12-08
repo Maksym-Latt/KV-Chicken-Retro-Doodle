@@ -27,6 +27,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -150,7 +151,7 @@ fun GameScreen(
                     image = eggBmp,
                     topLeft = Offset(
                         c.position.x - 16f,
-                        c.position.y - cam - 16f
+                        c.position.y - cam - 32f
                     )
                 )
             }
