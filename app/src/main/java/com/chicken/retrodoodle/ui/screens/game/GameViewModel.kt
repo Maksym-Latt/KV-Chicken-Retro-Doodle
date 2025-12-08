@@ -27,6 +27,8 @@ class GameViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository,
 ) : ViewModel() {
 
+    private var resultsApplied = false
+
     private var nextPlatformId = 0
     private var nextEnemyId = 0
     private var nextCollectibleId = 0
@@ -40,12 +42,7 @@ class GameViewModel @Inject constructor(
     val uiState: StateFlow<GameUiState> = _ui.asStateFlow()
 
     init {
-        viewModelScope.launch {
-            settingsRepository.eggsFlow.collect { eggs ->
-                _ui.value = _ui.value.copy(eggs = eggs)
-            }
-        }
-
+        
         viewModelScope.launch {
             settingsRepository.selectedSkinFlow.collect { skin ->
                 _ui.value = _ui.value.copy(player = _ui.value.player.copy(skin = skin))
@@ -63,6 +60,7 @@ class GameViewModel @Inject constructor(
         nextPlatformId = 0
         nextEnemyId = 0
         nextCollectibleId = 0
+        resultsApplied = false
 
         val startPlatformY = worldH - 200f
 
@@ -92,6 +90,7 @@ class GameViewModel @Inject constructor(
             platforms = platforms,
             enemies = enemies,
             collectibles = collectibles,
+            levelEggs = 0,
             player = Player(
                 position = Offset(worldW / 2f, playerStartY),
                 velocity = Offset(0f, 0f),
@@ -250,7 +249,12 @@ class GameViewModel @Inject constructor(
 
     private fun endGame() {
         val s = _ui.value
-        _ui.value = s.copy(status = GameStatus.GameOver)
+        if (s.status == GameStatus.GameOver) return
+        finalizeResults()
+        _ui.value = s.copy(
+            status = GameStatus.GameOver,
+            bestScore = maxOf(s.bestScore, s.score)
+        )
     }
 
     fun pauseGame() {
@@ -332,8 +336,23 @@ class GameViewModel @Inject constructor(
 
     private fun addEggs(amount: Int) {
         if (amount <= 0) return
-        _ui.value = _ui.value.copy(eggs = _ui.value.eggs + amount)
-        viewModelScope.launch { settingsRepository.addEggs(amount) }
+        _ui.value = _ui.value.copy(levelEggs = _ui.value.levelEggs + amount)
+    }
+
+    private fun finalizeResults() {
+        if (resultsApplied) return
+        resultsApplied = true
+
+        val finalState = _ui.value
+        val bestScore = maxOf(finalState.bestScore, finalState.score)
+        _ui.value = finalState.copy(bestScore = bestScore)
+
+        viewModelScope.launch {
+            if (finalState.levelEggs > 0) {
+                settingsRepository.addEggs(finalState.levelEggs)
+            }
+            settingsRepository.saveBestScore(finalState.score)
+        }
     }
 }
 
@@ -348,7 +367,7 @@ data class GameUiState(
     val collectibles: List<Collectible> = emptyList(),
     val score: Int = 0,
     val bestScore: Int = 0,
-    val eggs: Int = 0,
+    val levelEggs: Int = 0,
     val highestY: Float = Float.MAX_VALUE,
     val tiltX: Float = 0f,
     val cameraOffset: Float = 0f,
