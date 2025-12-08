@@ -103,6 +103,10 @@ constructor(
         playSound(SoundCue.VictoryFanfare)
     }
 
+    override fun playGameOver() {
+        playSound(SoundCue.GameOver)
+    }
+
 
     override fun playCollectEgg() {
         playSound(SoundCue.CollectEgg)
@@ -181,6 +185,7 @@ constructor(
 
     private enum class SoundCue(@RawRes val resId: Int) {
         VictoryFanfare(R.raw.sfx_victory_fanfare),
+        GameOver(R.raw.sfx_victory_fanfare),
         CollectEgg(R.raw.sfx_chicken_collect_egg),
         ChickenJump(R.raw.sfx_chicken_jump)
     }
@@ -195,6 +200,7 @@ constructor(
         private val SOUND_NORMALIZATION =
                 mapOf(
                         SoundCue.VictoryFanfare to 0.9f,
+                        SoundCue.GameOver to 0.9f,
                         SoundCue.CollectEgg to 0.9f,
                         SoundCue.ChickenJump to 2f,
                 )

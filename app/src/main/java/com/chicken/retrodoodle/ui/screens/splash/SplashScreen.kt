@@ -1,20 +1,15 @@
-package com.chicken.retrodoodle.ui.screens.menu
+package com.chicken.retrodoodle.ui.screens.splash
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -25,24 +20,30 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.chicken.retrodoodle.R
 import com.chicken.retrodoodle.audio.AudioController
 import com.chicken.retrodoodle.ui.components.GameTitle
-import com.chicken.retrodoodle.ui.components.GlossyButton
-import com.chicken.retrodoodle.ui.components.GradientText
 import com.chicken.retrodoodle.ui.navigation.AppDestination
+import com.chicken.retrodoodle.ui.screens.menu.MenuViewModel
+import kotlinx.coroutines.delay
 
 @Composable
-fun MenuScreen(
+fun SplashScreen(
     navController: NavHostController,
     audio: AudioController,
-    viewModel: MenuViewModel = hiltViewModel()
+    viewModel: MenuViewModel = hiltViewModel(),
 ) {
-    LaunchedEffect(Unit) { audio.playMenuMusic() }
     val state by viewModel.uiState.collectAsState()
+
+    LaunchedEffect(Unit) {
+        audio.playMenuMusic()
+        delay(3_000)
+        navController.navigate(AppDestination.Menu) {
+            popUpTo(AppDestination.Splash) { inclusive = true }
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -56,52 +57,22 @@ fun MenuScreen(
             contentScale = ContentScale.Crop
         )
 
-        GlossyButton(
-            iconRes = R.drawable.ic_settings,
-            modifier = Modifier
-                .padding(start = 16.dp, top = 16.dp)
-                .size(60.dp)
-                .align(Alignment.TopStart),
-            cornerRadius = 16.dp,
-            onClick = { navController.navigate(AppDestination.Settings) }
-        )
-
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(WindowInsets.safeDrawing.asPaddingValues()),
+                .padding(horizontal = 24.dp)
+                .wrapContentHeight(Alignment.CenterVertically),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.weight(1f))
-
             GameTitle()
 
-            Spacer(modifier = Modifier.weight(1.2f))
-
-            GlossyButton(
-                iconRes = R.drawable.ic_play,
-                cornerRadius = 20.dp,
-                onClick = { navController.navigate(AppDestination.Game) },
-                modifier = Modifier.fillMaxWidth(0.2f).aspectRatio(1.2f)
-            )
-
-            Spacer(modifier = Modifier.weight(3f))
+            Spacer(modifier = Modifier.height(48.dp))
 
             Image(
                 painter = painterResource(id = state.selectedSkin.image),
                 contentDescription = null,
-                modifier = Modifier.size(110.dp)
+                modifier = Modifier.size(140.dp)
             )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            GlossyButton(
-                text = "Shop",
-                modifier = Modifier.fillMaxWidth(0.55f),
-                onClick = { navController.navigate(AppDestination.Skins) }
-            )
-
-            Spacer(modifier = Modifier.weight(2f))
         }
     }
 }

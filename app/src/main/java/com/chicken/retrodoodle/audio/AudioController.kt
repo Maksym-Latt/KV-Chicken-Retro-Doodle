@@ -11,6 +11,7 @@ interface AudioController {
     fun setSoundVolume(percent: Int)
 
     fun playGameWin()
+    fun playGameOver()
     fun playCollectEgg()
     fun playChickenJump()
 }

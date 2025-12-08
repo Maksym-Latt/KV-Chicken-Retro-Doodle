@@ -66,6 +66,15 @@ fun GameScreen(
     val density = LocalDensity.current
 
     LaunchedEffect(Unit) { audio.playGameMusic() }
+    LaunchedEffect(viewModel) {
+        viewModel.events.collect { event ->
+            when (event) {
+                GameEvent.Jump -> audio.playChickenJump()
+                GameEvent.CollectEgg -> audio.playCollectEgg()
+                GameEvent.GameOver -> audio.playGameOver()
+            }
+        }
+    }
 
     BoxWithConstraints(Modifier.fillMaxSize()) {
 
