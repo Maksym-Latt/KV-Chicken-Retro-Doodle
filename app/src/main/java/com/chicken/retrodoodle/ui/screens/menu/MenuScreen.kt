@@ -80,7 +80,7 @@ fun MenuScreen(
                 modifier = Modifier.fillMaxWidth(0.2f).aspectRatio(1.2f)
             )
 
-            Spacer(modifier = Modifier.weight(1.3f))
+            Spacer(modifier = Modifier.weight(3f))
 
             Image(
                 painter = painterResource(id = R.drawable.chicken_1),
@@ -96,7 +96,7 @@ fun MenuScreen(
                 onClick = { navController.navigate(AppDestination.Skins) }
             )
 
-            Spacer(modifier = Modifier.weight(0.7f))
+            Spacer(modifier = Modifier.weight(2f))
         }
     }
 }

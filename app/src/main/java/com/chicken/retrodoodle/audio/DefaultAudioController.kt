@@ -103,9 +103,6 @@ constructor(
         playSound(SoundCue.VictoryFanfare)
     }
 
-    override fun playChickenHit() {
-        playSound(SoundCue.ChickenHit)
-    }
 
     override fun playCollectEgg() {
         playSound(SoundCue.CollectEgg)
@@ -176,7 +173,7 @@ constructor(
 
     private enum class MusicTrack(@RawRes val resId: Int) {
         // res/raw/menu_theme.mp3
-        MenuTheme(R.raw.menu_theme),
+        MenuTheme(R.raw.menu_loop),
 
         // res/raw/game_loop.mp3
         GameLoop(R.raw.game_loop)
@@ -184,7 +181,6 @@ constructor(
 
     private enum class SoundCue(@RawRes val resId: Int) {
         VictoryFanfare(R.raw.sfx_victory_fanfare),
-        ChickenHit(R.raw.sfx_chicken_hit),
         CollectEgg(R.raw.sfx_chicken_collect_egg),
         ChickenJump(R.raw.sfx_chicken_jump)
     }
@@ -199,9 +195,8 @@ constructor(
         private val SOUND_NORMALIZATION =
                 mapOf(
                         SoundCue.VictoryFanfare to 0.9f,
-                        SoundCue.ChickenHit to 0.9f,
                         SoundCue.CollectEgg to 0.9f,
-                        SoundCue.ChickenJump to 0.9f,
+                        SoundCue.ChickenJump to 2f,
                 )
 
         private data class SfxInstance(val player: MediaPlayer, val cue: SoundCue)

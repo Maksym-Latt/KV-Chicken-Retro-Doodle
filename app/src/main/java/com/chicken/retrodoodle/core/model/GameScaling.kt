@@ -2,17 +2,12 @@ package com.chicken.retrodoodle.core.model
 
 import androidx.compose.ui.unit.dp
 
-/**
- * Centralized scaling values for gameplay visuals and collisions.
- * Adjust [itemScale] to resize every sprite proportionally.
- * Adjust [collisionScale] (0f..1f) to tighten or loosen hit boxes.
- */
 object GameScaling {
     const val itemScale: Float = 3f
     const val collisionScale: Float = 0.9f
 
-    private const val BASE_PLAYER_WIDTH = 172f / itemScale
-    private const val BASE_PLAYER_HEIGHT = 220f / itemScale
+    private const val BASE_PLAYER_WIDTH = 172f / 4
+    private const val BASE_PLAYER_HEIGHT = 220f / 4
     private const val BASE_PLATFORM_WIDTH = 170f / itemScale
     private const val BASE_PLATFORM_HEIGHT = 44f / itemScale
     private const val BASE_COLLECTIBLE_WIDTH = 111f / itemScale
@@ -28,7 +23,7 @@ object GameScaling {
     val playerSize: Float = playerHeight
     val playerSizeDp = playerHeight.dp
 
-    val platformWidth: Float = BASE_PLATFORM_WIDTH * itemScale
+    val platformWidth: Float = BASE_PLATFORM_WIDTH * itemScale * 2
     val platformHeight: Float = BASE_PLATFORM_HEIGHT * itemScale
 
     val collectibleWidth: Float = BASE_COLLECTIBLE_WIDTH * itemScale
@@ -50,6 +45,6 @@ object GameScaling {
     val playerCollisionHalfHeight: Float = playerHeight * 0.35f
     val enemyCollisionHalfWidth: Float = enemyWidth * 0.35f
     val enemyCollisionHalfHeight: Float = enemyHeight * 0.35f
-    val collectibleCollisionHalfWidth: Float = collectibleWidth * 0.4f
-    val collectibleCollisionHalfHeight: Float = collectibleHeight * 0.4f
+    val collectibleCollisionHalfWidth: Float = collectibleWidth * 0.8f
+    val collectibleCollisionHalfHeight: Float = collectibleHeight * 0.8f
 }
