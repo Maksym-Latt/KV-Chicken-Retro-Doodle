@@ -8,10 +8,10 @@ import androidx.compose.ui.unit.dp
  * Adjust [collisionScale] (0f..1f) to tighten or loosen hit boxes.
  */
 object GameScaling {
-    const val itemScale: Float = 1f
+    const val itemScale: Float = 3f
     const val collisionScale: Float = 0.9f
 
-    private const val BASE_PLAYER_SIZE = 32f
+    private const val BASE_PLAYER_SIZE = 62f
     private const val BASE_PLATFORM_WIDTH = 104f
     private const val BASE_PLATFORM_HEIGHT = 20f
     private const val BASE_COLLECTIBLE_SIZE = 24f
