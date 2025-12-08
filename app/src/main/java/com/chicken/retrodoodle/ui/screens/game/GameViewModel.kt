@@ -17,8 +17,11 @@ import javax.inject.Inject
 import kotlin.math.abs
 import kotlin.math.min
 import kotlin.random.Random
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
@@ -40,6 +43,8 @@ class GameViewModel @Inject constructor(
 
     private val _ui = MutableStateFlow(GameUiState())
     val uiState: StateFlow<GameUiState> = _ui.asStateFlow()
+    private val _events = MutableSharedFlow<GameEvent>(extraBufferCapacity = 8)
+    val events: SharedFlow<GameEvent> = _events.asSharedFlow()
 
     init {
         
@@ -109,6 +114,7 @@ class GameViewModel @Inject constructor(
 
         var p = s.player
         var levelEggs = s.levelEggs
+        var jumped = false
 
         val updatedPlatforms = s.platforms.map { pl ->
             if (pl.type == PlatformType.Moving && !pl.isBroken) {
@@ -162,6 +168,7 @@ class GameViewModel @Inject constructor(
             if (previousBottom <= top && currentBottom >= top && vel.y > 0 && horizontalOverlap) {
                 vel = vel.copy(y = -GameConfig.jumpForce)
                 pos = pos.copy(y = top - collisionHalfHeight)
+                jumped = true
 
                 if (pl.type == PlatformType.Cracked) {
                     platformsAfterCollision[index] = pl.copy(isBroken = true)
@@ -182,6 +189,7 @@ class GameViewModel @Inject constructor(
                 vel = vel.copy(y = -GameConfig.jumpForce)
                 pos = pos.copy(y = enemyTop - collisionHalfHeight)
                 levelEggs += 1
+                jumped = true
             } else {
                 val verticalOverlap = abs(pos.y - enemy.position.y) <= collisionHalfHeight + GameScaling.enemyCollisionHalfHeight
                 if (horizontalOverlap && verticalOverlap) {
@@ -202,11 +210,16 @@ class GameViewModel @Inject constructor(
         if (collectedIds.isNotEmpty()) {
             collectiblesAfterCollision = collectiblesAfterCollision.filterNot { it.id in collectedIds }.toMutableList()
             levelEggs += collectedIds.size
+            _events.tryEmit(GameEvent.CollectEgg)
         }
 
         var alivePlatforms = platformsAfterCollision.filterNot { it.type == PlatformType.Cracked && it.isBroken }
         var aliveCollectibles = collectiblesAfterCollision
         var aliveEnemies = updatedEnemies.filterNot { it.id in stompedEnemies }
+
+        if (jumped) {
+            _events.tryEmit(GameEvent.Jump)
+        }
 
         var cam = s.cameraOffset
         val playerScreenY = pos.y - cam
@@ -252,6 +265,7 @@ class GameViewModel @Inject constructor(
         val s = _ui.value
         if (s.status == GameStatus.GameOver) return
         finalizeResults()
+        _events.tryEmit(GameEvent.GameOver)
         _ui.value = s.copy(
             status = GameStatus.GameOver,
             bestScore = maxOf(s.bestScore, s.score)
@@ -363,6 +377,12 @@ class GameViewModel @Inject constructor(
 
 
 private operator fun Offset.times(value: Float): Offset = Offset(x * value, y * value)
+
+sealed interface GameEvent {
+    data object Jump : GameEvent
+    data object CollectEgg : GameEvent
+    data object GameOver : GameEvent
+}
 
 data class GameUiState(
     val status: GameStatus = GameStatus.Idle,
