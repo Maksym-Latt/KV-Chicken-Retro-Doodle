@@ -246,7 +246,7 @@ fun SkinCard(
                         text = "Selected",
                         modifier = Modifier
                             .fillMaxWidth(0.85f),
-                        textSize = 22.sp,
+                        textSize = 24.sp,
                         enabled = false,
                         onClick = {}
                     )
@@ -256,7 +256,7 @@ fun SkinCard(
                         text = "Select",
                         modifier = Modifier
                             .fillMaxWidth(0.85f),
-                        textSize = 32.sp,
+                        textSize = 24.sp,
                         onClick = onSelect
                     )
 
@@ -266,7 +266,7 @@ fun SkinCard(
                         iconRes = R.drawable.item_gold_egg,
                         modifier = Modifier
                             .fillMaxWidth(0.85f),
-                        textSize = 32.sp,
+                        textSize = 24.sp,
                         onClick = onBuy
                     )
             }

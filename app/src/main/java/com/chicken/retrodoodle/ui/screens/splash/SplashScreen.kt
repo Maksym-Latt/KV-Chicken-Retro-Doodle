@@ -21,6 +21,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.chicken.retrodoodle.R
 import com.chicken.retrodoodle.audio.AudioController
@@ -32,13 +33,8 @@ import kotlinx.coroutines.delay
 @Composable
 fun SplashScreen(
     navController: NavHostController,
-    audio: AudioController,
-    viewModel: MenuViewModel = hiltViewModel(),
 ) {
-    val state by viewModel.uiState.collectAsState()
-
     LaunchedEffect(Unit) {
-        audio.playMenuMusic()
         delay(3_000)
         navController.navigate(AppDestination.Menu) {
             popUpTo(AppDestination.Splash) { inclusive = true }
@@ -69,7 +65,7 @@ fun SplashScreen(
             Spacer(modifier = Modifier.height(48.dp))
 
             Image(
-                painter = painterResource(id = state.selectedSkin.image),
+                painter = painterResource(id = R.drawable.chicken_1),
                 contentDescription = null,
                 modifier = Modifier.size(140.dp)
             )

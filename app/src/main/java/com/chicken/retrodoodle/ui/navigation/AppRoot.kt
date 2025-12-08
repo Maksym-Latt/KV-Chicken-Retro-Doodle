@@ -22,7 +22,7 @@ fun AppRoot(audio: AudioController, modifier: Modifier = Modifier) {
         modifier = modifier.fillMaxSize()
     ) {
         composable(AppDestination.Splash) {
-            SplashScreen(navController = navController, audio = audio)
+            SplashScreen(navController = navController)
         }
         composable(AppDestination.Menu) {
             MenuScreen(navController = navController, audio = audio)
