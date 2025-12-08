@@ -146,8 +146,8 @@ class GameViewModel @Inject constructor(
         if (pos.x < -50f) pos = pos.copy(x = s.worldWidth + pos.x)
         if (pos.x > s.worldWidth) pos = pos.copy(x = pos.x - s.worldWidth)
 
-        val playerHalf = GameScaling.playerSize / 2f
-        val collisionHalfWidth = GameScaling.playerCollisionRadius
+        val playerCollisionHalf = GameScaling.playerCollisionRadius
+        val collisionHalfWidth = playerCollisionHalf
         val platformBuffer = GameScaling.platformCollisionBuffer
         val platformsAfterCollision = updatedPlatforms.toMutableList()
         var collectiblesAfterCollision = s.collectibles.toMutableList()
@@ -156,13 +156,15 @@ class GameViewModel @Inject constructor(
         updatedPlatforms.forEachIndexed { index, pl ->
             if (pl.isBroken) return@forEachIndexed
             val top = pl.position.y - pl.height / 2f
-            val previousBottom = p.position.y + playerHalf
-            val currentBottom = pos.y + playerHalf
+            val platformTopOnScreen = top - s.cameraOffset
+            if (platformTopOnScreen > s.worldHeight) return@forEachIndexed
+            val previousBottom = p.position.y + playerCollisionHalf
+            val currentBottom = pos.y + playerCollisionHalf
             val horizontalOverlap = abs(pos.x - pl.position.x) <= pl.width / 2f + collisionHalfWidth - platformBuffer
 
             if (previousBottom <= top && currentBottom >= top && vel.y > 0 && horizontalOverlap) {
                 vel = vel.copy(y = -GameConfig.jumpForce)
-                pos = pos.copy(y = top - playerHalf)
+                pos = pos.copy(y = top - playerCollisionHalf)
 
                 if (pl.type == PlatformType.Cracked) {
                     platformsAfterCollision[index] = pl.copy(isBroken = true)
@@ -174,17 +176,18 @@ class GameViewModel @Inject constructor(
             val enemyTop = enemy.position.y - GameScaling.enemyCollisionHalfHeight
             val horizontalOverlap =
                 abs(pos.x - enemy.position.x) <= collisionHalfWidth + GameScaling.enemyCollisionHalfWidth
-            val previousBottom = p.position.y + playerHalf
-            val currentBottom = pos.y + playerHalf
+            val previousBottom = p.position.y + playerCollisionHalf
+            val currentBottom = pos.y + playerCollisionHalf
 
             val stomped = horizontalOverlap && previousBottom <= enemyTop && currentBottom >= enemyTop && vel.y > 0
             if (stomped) {
                 stompedEnemies += enemy.id
                 vel = vel.copy(y = -GameConfig.jumpForce)
-                pos = pos.copy(y = enemyTop - playerHalf)
+                pos = pos.copy(y = enemyTop - playerCollisionHalf)
                 levelEggs += 1
             } else {
-                val verticalOverlap = abs(pos.y - enemy.position.y) <= playerHalf + GameScaling.enemyCollisionHalfHeight
+                val verticalOverlap = abs(pos.y - enemy.position.y) <=
+                    playerCollisionHalf + GameScaling.enemyCollisionHalfHeight
                 if (horizontalOverlap && verticalOverlap) {
                     endGame(); return
                 }
@@ -193,8 +196,10 @@ class GameViewModel @Inject constructor(
 
         val collectedIds = mutableListOf<Int>()
         collectiblesAfterCollision.forEach { collectible ->
-            val overlapX = abs(pos.x - collectible.position.x) <= collisionHalfWidth
-            val overlapY = abs(pos.y - collectible.position.y) <= collisionHalfWidth
+            val overlapX = abs(pos.x - collectible.position.x) <=
+                playerCollisionHalf + GameScaling.collectibleCollisionHalfWidth
+            val overlapY = abs(pos.y - collectible.position.y) <=
+                playerCollisionHalf + GameScaling.collectibleCollisionHalfHeight
             if (overlapX && overlapY) {
                 collectedIds += collectible.id
             }
@@ -223,7 +228,9 @@ class GameViewModel @Inject constructor(
         val highest = min(s.highestY, pos.y)
 
         val platformPool = alivePlatforms.filter { platform ->
-            platform.position.y - cam <= s.worldHeight + offscreenCullBuffer
+            val top = platform.position.y - platform.height / 2f - cam
+            val bottom = platform.position.y + platform.height / 2f - cam
+            bottom >= -offscreenCullBuffer && top <= s.worldHeight
         }.toMutableList()
         val enemyPool = aliveEnemies.filter { enemy ->
             enemy.position.y - cam <= s.worldHeight + offscreenCullBuffer
