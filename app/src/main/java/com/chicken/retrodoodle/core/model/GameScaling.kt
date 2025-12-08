@@ -15,13 +15,13 @@ object GameScaling {
     private const val BASE_PLATFORM_WIDTH = 104f
     private const val BASE_PLATFORM_HEIGHT = 20f
     private const val BASE_COLLECTIBLE_SIZE = 24f
-    private const val BASE_ENEMY_WIDTH = 32f
-    private const val BASE_ENEMY_HEIGHT = 32f
+    private const val BASE_ENEMY_WIDTH = 75f
+    private const val BASE_ENEMY_HEIGHT = 57f
     private const val BASE_PLATFORM_BUFFER = 4f
-    private const val BASE_ENEMY_COLLISION_HALF_WIDTH = 16f
+    private const val BASE_ENEMY_COLLISION_HALF_WIDTH = 18f
     private const val BASE_ENEMY_COLLISION_HALF_HEIGHT = 18f
-    private const val BASE_COLLECTIBLE_COLLISION_HALF_WIDTH = 14f
-    private const val BASE_COLLECTIBLE_COLLISION_HALF_HEIGHT = 16f
+    private const val BASE_COLLECTIBLE_COLLISION_HALF_WIDTH = 22f
+    private const val BASE_COLLECTIBLE_COLLISION_HALF_HEIGHT = 22f
 
     val playerSize: Float = BASE_PLAYER_SIZE * itemScale
     val playerSizeDp = playerSize.dp
@@ -38,9 +38,9 @@ object GameScaling {
 
     val platformCollisionBuffer: Float = BASE_PLATFORM_BUFFER * itemScale
 
-    val playerCollisionRadius: Float = playerSize * 0.5f * collisionScale
-    val enemyCollisionHalfWidth: Float = BASE_ENEMY_COLLISION_HALF_WIDTH * itemScale * collisionScale
-    val enemyCollisionHalfHeight: Float = BASE_ENEMY_COLLISION_HALF_HEIGHT * itemScale * collisionScale
-    val collectibleCollisionHalfWidth: Float = BASE_COLLECTIBLE_COLLISION_HALF_WIDTH * itemScale * collisionScale
-    val collectibleCollisionHalfHeight: Float = BASE_COLLECTIBLE_COLLISION_HALF_HEIGHT * itemScale * collisionScale
+    val playerCollisionRadius: Float = playerSize * 0.5f * 0.7f
+    val enemyCollisionHalfWidth: Float = BASE_ENEMY_COLLISION_HALF_WIDTH * 0.8f * itemScale
+    val enemyCollisionHalfHeight: Float = BASE_ENEMY_COLLISION_HALF_HEIGHT * 0.8f * itemScale
+    val collectibleCollisionHalfWidth: Float = BASE_COLLECTIBLE_COLLISION_HALF_WIDTH * itemScale
+    val collectibleCollisionHalfHeight: Float = BASE_COLLECTIBLE_COLLISION_HALF_HEIGHT * itemScale
 }

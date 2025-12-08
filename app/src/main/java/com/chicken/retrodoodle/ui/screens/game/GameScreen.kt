@@ -150,8 +150,8 @@ fun GameScreen(
                 drawImage(
                     image = eggBmp,
                     topLeft = Offset(
-                        c.position.x - 16f,
-                        c.position.y - cam - 32f
+                        c.position.x,
+                        c.position.y
                     )
                 )
             }
