@@ -195,27 +195,58 @@ fun GameScreen(
             if (GameConfig.debugCollisionOverlay) {
                 state.platforms.forEach { platform ->
                     if (platform.isBroken) return@forEach
+                    val collisionWidth = platform.width - GameScaling.platformCollisionBuffer * 2f
                     drawRect(
                         color = Color.Red.copy(alpha = 0.3f),
                         topLeft = Offset(
-                            platform.position.x - platform.width / 2f,
+                            platform.position.x - collisionWidth / 2f,
                             platform.position.y - cam - platform.height / 2f
                         ),
-                        size = Size(platform.width, platform.height),
+                        size = Size(collisionWidth, 12f),
                         style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2f)
                     )
                 }
 
-                val half = GameScaling.playerSize / 2f
+                val half = GameScaling.playerCollisionRadius
                 drawRect(
                     color = Color.Green.copy(alpha = 0.4f),
                     topLeft = Offset(
                         state.player.position.x - half,
                         state.player.position.y - cam - half
                     ),
-                    size = Size(GameScaling.playerSize, GameScaling.playerSize),
+                    size = Size(half * 2f, half * 2f),
                     style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2f)
                 )
+
+                state.enemies.forEach { enemy ->
+                    drawRect(
+                        color = Color.Magenta.copy(alpha = 0.4f),
+                        topLeft = Offset(
+                            enemy.position.x - GameScaling.enemyCollisionHalfWidth,
+                            enemy.position.y - cam - GameScaling.enemyCollisionHalfHeight
+                        ),
+                        size = Size(
+                            GameScaling.enemyCollisionHalfWidth * 2f,
+                            GameScaling.enemyCollisionHalfHeight * 2f
+                        ),
+                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2f)
+                    )
+                }
+
+                state.collectibles.forEach { collectible ->
+                    drawRect(
+                        color = Color.Cyan.copy(alpha = 0.4f),
+                        topLeft = Offset(
+                            collectible.position.x - GameScaling.collectibleCollisionHalfWidth,
+                            collectible.position.y - cam - GameScaling.collectibleCollisionHalfHeight
+                        ),
+                        size = Size(
+                            GameScaling.collectibleCollisionHalfWidth * 2f,
+                            GameScaling.collectibleCollisionHalfHeight * 2f
+                        ),
+                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2f)
+                    )
+                }
             }
         }
 
