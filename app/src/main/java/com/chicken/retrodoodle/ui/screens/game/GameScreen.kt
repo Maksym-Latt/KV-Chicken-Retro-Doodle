@@ -48,6 +48,9 @@ import com.chicken.retrodoodle.ui.components.GameHud
 import com.chicken.retrodoodle.ui.screens.settings.SettingsViewModel
 import kotlinx.coroutines.isActive
 import kotlin.math.roundToInt
+import kotlin.math.abs
+import kotlin.math.pow
+import kotlin.math.sign
 
 @Composable
 fun GameScreen(
@@ -102,8 +105,10 @@ fun GameScreen(
 
             val listener = object : SensorEventListener {
                 override fun onSensorChanged(e: SensorEvent?) {
-                    val tilt = (e?.values?.getOrNull(0) ?: 0f) / 6f
-                    viewModel.updateTilt(tilt)
+                    val rawTilt = (e?.values?.getOrNull(0) ?: 0f) / GameConfig.tiltInputScale
+                    val clampedTilt = rawTilt.coerceIn(-GameConfig.tiltInputMax, GameConfig.tiltInputMax)
+                    val curvedTilt = sign(clampedTilt) * abs(clampedTilt).pow(0.8f)
+                    viewModel.updateTilt(curvedTilt.coerceIn(-1f, 1f))
                 }
                 override fun onAccuracyChanged(s: Sensor?, a: Int) {}
             }
