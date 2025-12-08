@@ -147,36 +147,57 @@ fun GameScreen(
             }
 
             state.collectibles.forEach { c ->
+                val collectibleWidth = GameScaling.collectibleWidth
+                val collectibleHeight = GameScaling.collectibleHeight
+                val collectibleHalfWidth = GameScaling.collectibleHalfWidth
+                val collectibleHalfHeight = GameScaling.collectibleHalfHeight
                 drawImage(
                     image = eggBmp,
-                    topLeft = Offset(
-                        c.position.x,
-                        c.position.y
+                    srcOffset = IntOffset.Zero,
+                    srcSize = IntSize(eggBmp.width, eggBmp.height),
+                    dstOffset = IntOffset(
+                        (c.position.x - collectibleHalfWidth).roundToInt(),
+                        (c.position.y - cam - collectibleHalfHeight).roundToInt()
+                    ),
+                    dstSize = IntSize(
+                        collectibleWidth.roundToInt(),
+                        collectibleHeight.roundToInt()
                     )
                 )
             }
 
             state.enemies.forEach { e ->
-                val bugHalfSize = 24f
+                val bugHalfWidth = GameScaling.enemyWidth / 2f
+                val bugHalfHeight = GameScaling.enemyHeight / 2f
                 val enemyPivot = Offset(e.position.x, e.position.y - cam)
                 val bugTopLeft = Offset(
-                    e.position.x - bugHalfSize,
-                    e.position.y - cam - bugHalfSize
+                    e.position.x - bugHalfWidth,
+                    e.position.y - cam - bugHalfHeight
                 )
                 val bugScaleX = if (e.direction > 0f) -1f else 1f
 
                 withTransform({ scale(scaleX = bugScaleX, scaleY = 1f, pivot = enemyPivot) }) {
                     drawImage(
                         image = bugBmp,
-                        topLeft = bugTopLeft
+                        srcOffset = IntOffset.Zero,
+                        srcSize = IntSize(bugBmp.width, bugBmp.height),
+                        dstOffset = IntOffset(
+                            bugTopLeft.x.roundToInt(),
+                            bugTopLeft.y.roundToInt()
+                        ),
+                        dstSize = IntSize(
+                            GameScaling.enemyWidth.roundToInt(),
+                            GameScaling.enemyHeight.roundToInt()
+                        )
                     )
                 }
             }
 
-            val playerSizePx = GameScaling.playerSize
+            val playerWidthPx = GameScaling.playerWidth
+            val playerHeightPx = GameScaling.playerHeight
             val playerDstOffset = IntOffset(
-                (state.player.position.x - playerSizePx / 2f).roundToInt(),
-                (state.player.position.y - cam - playerSizePx / 2f).roundToInt()
+                (state.player.position.x - GameScaling.playerHalfWidth).roundToInt(),
+                (state.player.position.y - cam - GameScaling.playerHalfHeight).roundToInt()
             )
 
             val playerPivot = Offset(state.player.position.x, state.player.position.y - cam)
@@ -188,7 +209,7 @@ fun GameScreen(
                     srcOffset = IntOffset.Zero,
                     srcSize = IntSize(playerBmp.width, playerBmp.height),
                     dstOffset = playerDstOffset,
-                    dstSize = IntSize(playerSizePx.roundToInt(), playerSizePx.roundToInt())
+                    dstSize = IntSize(playerWidthPx.roundToInt(), playerHeightPx.roundToInt())
                 )
             }
 
@@ -207,14 +228,18 @@ fun GameScreen(
                     )
                 }
 
-                val half = GameScaling.playerCollisionRadius
+                val playerCollisionHalfWidth = GameScaling.playerCollisionHalfWidth
+                val playerCollisionHalfHeight = GameScaling.playerCollisionHalfHeight
                 drawRect(
                     color = Color.Green.copy(alpha = 0.4f),
                     topLeft = Offset(
-                        state.player.position.x - half,
-                        state.player.position.y - cam - half
+                        state.player.position.x - playerCollisionHalfWidth,
+                        state.player.position.y - cam - playerCollisionHalfHeight
                     ),
-                    size = Size(half * 2f, half * 2f),
+                    size = Size(
+                        playerCollisionHalfWidth * 2f,
+                        playerCollisionHalfHeight * 2f
+                    ),
                     style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2f)
                 )
 

@@ -76,8 +76,7 @@ class GameViewModel @Inject constructor(
         val enemies = mutableListOf<Enemy>()
         val collectibles = mutableListOf<Collectible>()
 
-        val playerSize = GameScaling.playerSize
-        val playerStartY = startPlatformY - basePlatform.height / 2f - playerSize / 2f
+        val playerStartY = startPlatformY - basePlatform.height / 2f - GameScaling.playerHalfHeight
 
         generatePlatforms(platforms, enemies, collectibles, worldW, startPlatformY)
 
@@ -146,8 +145,8 @@ class GameViewModel @Inject constructor(
         if (pos.x < -50f) pos = pos.copy(x = s.worldWidth + pos.x)
         if (pos.x > s.worldWidth) pos = pos.copy(x = pos.x - s.worldWidth)
 
-        val playerHalf = GameScaling.playerSize / 2f
-        val collisionHalfWidth = GameScaling.playerCollisionRadius
+        val collisionHalfWidth = GameScaling.playerCollisionHalfWidth
+        val collisionHalfHeight = GameScaling.playerCollisionHalfHeight
         val platformBuffer = GameScaling.platformCollisionBuffer
         val platformsAfterCollision = updatedPlatforms.toMutableList()
         var collectiblesAfterCollision = s.collectibles.toMutableList()
@@ -156,13 +155,13 @@ class GameViewModel @Inject constructor(
         updatedPlatforms.forEachIndexed { index, pl ->
             if (pl.isBroken) return@forEachIndexed
             val top = pl.position.y - pl.height / 2f
-            val previousBottom = p.position.y + playerHalf
-            val currentBottom = pos.y + playerHalf
+            val previousBottom = p.position.y + collisionHalfHeight
+            val currentBottom = pos.y + collisionHalfHeight
             val horizontalOverlap = abs(pos.x - pl.position.x) <= pl.width / 2f + collisionHalfWidth - platformBuffer
 
             if (previousBottom <= top && currentBottom >= top && vel.y > 0 && horizontalOverlap) {
                 vel = vel.copy(y = -GameConfig.jumpForce)
-                pos = pos.copy(y = top - playerHalf)
+                pos = pos.copy(y = top - collisionHalfHeight)
 
                 if (pl.type == PlatformType.Cracked) {
                     platformsAfterCollision[index] = pl.copy(isBroken = true)
@@ -174,17 +173,17 @@ class GameViewModel @Inject constructor(
             val enemyTop = enemy.position.y - GameScaling.enemyCollisionHalfHeight
             val horizontalOverlap =
                 abs(pos.x - enemy.position.x) <= collisionHalfWidth + GameScaling.enemyCollisionHalfWidth
-            val previousBottom = p.position.y + playerHalf
-            val currentBottom = pos.y + playerHalf
+            val previousBottom = p.position.y + collisionHalfHeight
+            val currentBottom = pos.y + collisionHalfHeight
 
             val stomped = horizontalOverlap && previousBottom <= enemyTop && currentBottom >= enemyTop && vel.y > 0
             if (stomped) {
                 stompedEnemies += enemy.id
                 vel = vel.copy(y = -GameConfig.jumpForce)
-                pos = pos.copy(y = enemyTop - playerHalf)
+                pos = pos.copy(y = enemyTop - collisionHalfHeight)
                 levelEggs += 1
             } else {
-                val verticalOverlap = abs(pos.y - enemy.position.y) <= playerHalf + GameScaling.enemyCollisionHalfHeight
+                val verticalOverlap = abs(pos.y - enemy.position.y) <= collisionHalfHeight + GameScaling.enemyCollisionHalfHeight
                 if (horizontalOverlap && verticalOverlap) {
                     endGame(); return
                 }
@@ -194,7 +193,7 @@ class GameViewModel @Inject constructor(
         val collectedIds = mutableListOf<Int>()
         collectiblesAfterCollision.forEach { collectible ->
             val overlapX = abs(pos.x - collectible.position.x) <= collisionHalfWidth
-            val overlapY = abs(pos.y - collectible.position.y) <= collisionHalfWidth
+            val overlapY = abs(pos.y - collectible.position.y) <= collisionHalfHeight
             if (overlapX && overlapY) {
                 collectedIds += collectible.id
             }
@@ -285,13 +284,21 @@ class GameViewModel @Inject constructor(
             platforms += newPlatform
 
             if (Random.nextFloat() < enemySpawnChance) {
+                val platformTop = newPlatform.position.y - newPlatform.height / 2f
+                val enemyHalfWidth = GameScaling.enemyWidth / 2f
+                val enemyHalfHeight = GameScaling.enemyHeight / 2f
+                val platformLeft = newPlatform.position.x - newPlatform.width / 2f
+                val platformRight = newPlatform.position.x + newPlatform.width / 2f
+                val minEnemyX = platformLeft + enemyHalfWidth
+                val maxEnemyX = platformRight - enemyHalfWidth
+
                 val enemy = Enemy(
                     id = nextEnemyId++,
                     position = Offset(
-                        x = (GameScaling.enemyWidth.toInt()..(worldWidth - GameScaling.enemyWidth).toInt())
-                            .random()
+                        x = Random
+                            .nextDouble(minEnemyX.toDouble(), maxEnemyX.toDouble())
                             .toFloat(),
-                        y = newPlatform.position.y - GameScaling.enemyHeight
+                        y = platformTop - enemyHalfHeight
                     ),
                     speed = GameConfig.bugSpeed,
                     direction = if (Random.nextBoolean()) 1f else -1f
@@ -300,11 +307,12 @@ class GameViewModel @Inject constructor(
             }
 
             if (Random.nextFloat() < collectibleSpawnChance) {
+                val platformTop = newPlatform.position.y - newPlatform.height / 2f
                 val collectible = Collectible(
                     id = nextCollectibleId++,
                     position = Offset(
                         x = newPlatform.position.x,
-                        y = newPlatform.position.y - newPlatform.height / 2f - 18f,
+                        y = platformTop - GameScaling.collectibleHalfHeight,
                     )
                 )
                 collectibles.add(collectible)
