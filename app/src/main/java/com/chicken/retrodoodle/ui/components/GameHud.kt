@@ -30,7 +30,7 @@ import com.chicken.retrodoodle.R
 @Composable
 fun GameHud(
     score: Int,
-    eggs: Int,
+    levelEggs: Int,
     onPause: () -> Unit,
 ) {
     Row(
@@ -57,7 +57,7 @@ fun GameHud(
             Column(horizontalAlignment = Alignment.End) {
 
                 CoinsCounter(
-                    value = eggs,
+                    value = levelEggs,
                     modifier = Modifier
                 )
 

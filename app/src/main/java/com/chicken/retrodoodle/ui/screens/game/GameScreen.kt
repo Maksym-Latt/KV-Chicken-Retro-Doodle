@@ -208,7 +208,7 @@ fun GameScreen(
 
         GameHud(
             score = state.score,
-            eggs = state.eggs,
+            levelEggs = state.levelEggs,
             onPause = { viewModel.pauseGame() },
         )
 
