@@ -10,5 +10,6 @@ object GameConfig {
     const val tiltAcceleration = 1250f
     const val maxHorizontalSpeed = 780f
     const val movingPlatformSpeed = 150f
+    const val bugSpeed = 220f
     const val debugCollisionOverlay = true
 }

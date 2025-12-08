@@ -2,7 +2,6 @@ package com.chicken.retrodoodle.ui.screens.game
 
 import androidx.compose.ui.geometry.Offset
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import com.chicken.retrodoodle.core.model.Collectible
 import com.chicken.retrodoodle.core.model.Enemy
 import com.chicken.retrodoodle.core.model.GameConfig
@@ -17,26 +16,33 @@ import javax.inject.Inject
 import kotlin.math.abs
 import kotlin.math.min
 import kotlin.random.Random
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
 
 @HiltViewModel
 class GameViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository,
 ) : ViewModel() {
 
+    private var nextPlatformId = 0
+    private var nextEnemyId = 0
+    private val spacingRange = 150..230
+    private val generationDepth = 3200f
+    private val offscreenCullBuffer = 200f
+    private val enemySpawnChance = 0.2f
+
     private val _ui = MutableStateFlow(GameUiState())
     val uiState: StateFlow<GameUiState> = _ui.asStateFlow()
 
     fun startGame(worldW: Float, worldH: Float) {
+        nextPlatformId = 0
+        nextEnemyId = 0
 
         val startPlatformY = worldH - 200f
 
         val basePlatform = Platform(
-            id = 0,
+            id = nextPlatformId++,
             position = Offset(worldW / 2f, startPlatformY),
             width = GameScaling.platformWidth,
             height = GameScaling.platformHeight,
@@ -44,33 +50,12 @@ class GameViewModel @Inject constructor(
         )
 
         val platforms = mutableListOf(basePlatform)
+        val enemies = mutableListOf<Enemy>()
 
         val playerSize = GameScaling.playerSize
         val playerStartY = startPlatformY - basePlatform.height / 2f - playerSize / 2f
 
-        var y = startPlatformY
-        var id = 1
-        while (y > startPlatformY - 3500f) {
-            y -= (150..230).random()
-            val typeRoll = Random.nextFloat()
-            val type = when {
-                typeRoll < 0.15f -> PlatformType.Moving
-                typeRoll < 0.35f -> PlatformType.Cracked
-                else -> PlatformType.Static
-            }
-            val dir = if (Random.nextBoolean()) 1f else -1f
-            platforms += Platform(
-                id = id++,
-                position = Offset(
-                    x = (GameScaling.platformWidth.toInt()..(worldW - GameScaling.platformWidth).toInt()).random().toFloat(),
-                    y = y
-                ),
-                width = GameScaling.platformWidth,
-                height = GameScaling.platformHeight,
-                type = type,
-                direction = dir,
-            )
-        }
+        generatePlatforms(platforms, enemies, worldW, startPlatformY)
 
         _ui.value = GameUiState(
             status = GameStatus.Playing,
@@ -79,6 +64,7 @@ class GameViewModel @Inject constructor(
             cameraOffset = 0f,
             highestY = playerStartY,
             platforms = platforms,
+            enemies = enemies,
             player = Player(
                 position = Offset(worldW / 2f, playerStartY),
                 velocity = Offset(0f, 0f),
@@ -109,6 +95,17 @@ class GameViewModel @Inject constructor(
                 }
                 pl.copy(position = pl.position.copy(x = newX), direction = newDir)
             } else pl
+        }
+
+        val updatedEnemies = s.enemies.map { enemy ->
+            val candidateX = enemy.position.x + enemy.direction * GameConfig.bugSpeed * dt
+            val halfWidth = GameScaling.enemyWidth / 2f
+            val (newX, newDir) = when {
+                candidateX - halfWidth < 0f -> halfWidth to 1f
+                candidateX + halfWidth > s.worldWidth -> s.worldWidth - halfWidth to -1f
+                else -> candidateX to enemy.direction
+            }
+            enemy.copy(position = enemy.position.copy(x = newX), direction = newDir)
         }
 
         val vx = (p.velocity.x + (-s.tiltX * GameConfig.tiltAcceleration * dt))
@@ -144,7 +141,8 @@ class GameViewModel @Inject constructor(
             }
         }
 
-        val alivePlatforms = platformsAfterCollision.filterNot { it.type == PlatformType.Cracked && it.isBroken }
+        var alivePlatforms = platformsAfterCollision.filterNot { it.type == PlatformType.Cracked && it.isBroken }
+        var aliveEnemies = updatedEnemies
 
         var cam = s.cameraOffset
         val playerScreenY = pos.y - cam
@@ -157,11 +155,27 @@ class GameViewModel @Inject constructor(
             endGame(); return
         }
 
+        if (isTouchingEnemy(pos, aliveEnemies)) {
+            endGame(); return
+        }
+
         val highest = min(s.highestY, pos.y)
+
+        val platformPool = alivePlatforms.filter { platform ->
+            platform.position.y - cam <= s.worldHeight + offscreenCullBuffer
+        }.toMutableList()
+        val enemyPool = aliveEnemies.filter { enemy ->
+            enemy.position.y - cam <= s.worldHeight + offscreenCullBuffer
+        }.toMutableList()
+
+        generatePlatforms(platformPool, enemyPool, s.worldWidth, cam)
+        alivePlatforms = platformPool
+        aliveEnemies = enemyPool
 
         _ui.value = s.copy(
             player = p.copy(position = pos, velocity = vel),
             platforms = alivePlatforms,
+            enemies = aliveEnemies,
             cameraOffset = cam,
             highestY = highest,
             score = ((s.worldHeight - highest) / 10).toInt()
@@ -181,6 +195,74 @@ class GameViewModel @Inject constructor(
     fun resumeGame() {
         if (_ui.value.status == GameStatus.Paused)
             _ui.value = _ui.value.copy(status = GameStatus.Playing)
+    }
+
+    private fun generatePlatforms(
+        platforms: MutableList<Platform>,
+        enemies: MutableList<Enemy>,
+        worldWidth: Float,
+        cameraOffset: Float,
+    ) {
+        val minY = platforms.minOfOrNull { it.position.y } ?: cameraOffset
+        var currentY = minY
+
+        while (currentY > cameraOffset - generationDepth) {
+            currentY -= spacingRange.random()
+            val newPlatform = createPlatform(currentY, worldWidth)
+            platforms += newPlatform
+
+            if (Random.nextFloat() < enemySpawnChance) {
+                val enemy = Enemy(
+                    id = nextEnemyId++,
+                    position = Offset(
+                        x = (GameScaling.enemyWidth.toInt()..(worldWidth - GameScaling.enemyWidth).toInt())
+                            .random()
+                            .toFloat(),
+                        y = newPlatform.position.y - GameScaling.enemyHeight
+                    ),
+                    speed = GameConfig.bugSpeed,
+                    direction = if (Random.nextBoolean()) 1f else -1f
+                )
+                enemies.add(enemy)
+            }
+        }
+    }
+
+    private fun createPlatform(y: Float, worldWidth: Float): Platform {
+        val typeRoll = Random.nextFloat()
+        val type = when {
+            typeRoll < 0.15f -> PlatformType.Moving
+            typeRoll < 0.35f -> PlatformType.Cracked
+            else -> PlatformType.Static
+        }
+        val dir = if (Random.nextBoolean()) 1f else -1f
+        val xRangeStart = GameScaling.platformWidth / 2f
+        val xRangeEnd = worldWidth - GameScaling.platformWidth / 2f
+
+        return Platform(
+            id = nextPlatformId++,
+            position = Offset(
+                x = Random.nextDouble(xRangeStart.toDouble(), xRangeEnd.toDouble()).toFloat(),
+                y = y
+            ),
+            width = GameScaling.platformWidth,
+            height = GameScaling.platformHeight,
+            type = type,
+            direction = dir,
+        )
+    }
+
+    private fun isTouchingEnemy(playerPosition: Offset, enemies: List<Enemy>): Boolean {
+        val halfPlayer = GameScaling.playerCollisionRadius
+        val halfEnemyX = GameScaling.enemyCollisionHalfWidth
+        val halfEnemyY = GameScaling.enemyCollisionHalfHeight
+
+        enemies.forEach { enemy ->
+            val overlapX = abs(playerPosition.x - enemy.position.x) <= halfPlayer + halfEnemyX
+            val overlapY = abs(playerPosition.y - enemy.position.y) <= halfPlayer + halfEnemyY
+            if (overlapX && overlapY) return true
+        }
+        return false
     }
 }
 
