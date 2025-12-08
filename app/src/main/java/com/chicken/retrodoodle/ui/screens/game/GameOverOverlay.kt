@@ -17,8 +17,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.chicken.retrodoodle.ui.components.GlossyButton
 import com.chicken.retrodoodle.ui.components.GradientText
-import com.chicken.retrodoodle.ui.components.OverlayPanel
-import com.chicken.retrodoodle.ui.components.PixelButton
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Alignment
 

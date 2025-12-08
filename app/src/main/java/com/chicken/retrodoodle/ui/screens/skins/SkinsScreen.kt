@@ -89,7 +89,7 @@ fun SkinsScreen(
                 horizontalArrangement = Arrangement.Start
             ) {
                 GlossyButton(
-                    iconRes = R.drawable.ic_launcher_foreground,
+                    iconRes = R.drawable.ic_home,
                     modifier = Modifier.size(60.dp),
                     cornerRadius = 16.dp,
                     onClick = { navController.navigateUp() }
@@ -248,7 +248,6 @@ fun SkinCard(
                             .fillMaxWidth(0.85f),
                         textSize = 22.sp,
                         enabled = false,
-                        iconScale = 1f,
                         onClick = {}
                     )
 
@@ -258,7 +257,6 @@ fun SkinCard(
                         modifier = Modifier
                             .fillMaxWidth(0.85f),
                         textSize = 32.sp,
-                        iconScale = 1f,
                         onClick = onSelect
                     )
 
@@ -269,7 +267,6 @@ fun SkinCard(
                         modifier = Modifier
                             .fillMaxWidth(0.85f),
                         textSize = 32.sp,
-                        iconScale = 1f,
                         onClick = onBuy
                     )
             }

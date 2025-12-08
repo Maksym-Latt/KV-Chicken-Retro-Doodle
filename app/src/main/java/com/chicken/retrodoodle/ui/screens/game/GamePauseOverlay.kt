@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -43,23 +44,21 @@ fun GamePauseOverlay(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0x99000000)), // затемнение
+            .background(Color(0x99000000)),
         contentAlignment = Alignment.Center
     ) {
 
         Box(
-            modifier = modifier.fillMaxWidth(0.82f),
+            modifier = modifier.fillMaxWidth(0.7f),
             contentAlignment = Alignment.TopEnd
         ) {
-
-            // ---------- САМА ПАНЕЛЬ ----------
             Column(
                 modifier = Modifier
                     .background(
                         brush = Brush.verticalGradient(
                             listOf(
-                                Color(0xFFB8F1FF),
-                                Color(0xFF5AB6D4)
+                                Color(0xff84e4fa),
+                                Color(0xff2d6b78)
                             )
                         ),
                         shape = RoundedCornerShape(28.dp)
@@ -69,14 +68,11 @@ fun GamePauseOverlay(
                 horizontalAlignment = Alignment.Start
             ) {
 
-                // ---------- PAUSED ----------
                 GradientText(
                     text = "Paused",
-                    size = 38.sp,
-                    stroke = 10f,
+                    size = 46.sp,
+                    stroke = 15f,
                 )
-
-                Spacer(Modifier.height(22.dp))
 
                 AudioSettingsSection(
                     musicOn = musicOn,
@@ -85,8 +81,6 @@ fun GamePauseOverlay(
                     onToggleSounds = onToggleSounds,
                 )
 
-                Spacer(Modifier.height(20.dp))
-
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly,
@@ -94,29 +88,29 @@ fun GamePauseOverlay(
                 ) {
 
                     GlossyButton(
-                        iconRes = R.drawable.ic_launcher_foreground,
-                        iconScale = 1.4f,
+                        iconRes = R.drawable.ic_restart,
+                        iconScale = 1f,
                         cornerRadius = 22.dp,
-                        modifier = Modifier.size(80.dp),
+                        modifier = Modifier.size(70.dp).aspectRatio(1.1f),
                         onClick = onRestart
                     )
 
                     GlossyButton(
-                        iconRes = R.drawable.ic_launcher_foreground,
-                        iconScale = 1.4f,
+                        iconRes = R.drawable.ic_home,
+                        iconScale = 1f,
                         cornerRadius = 22.dp,
-                        modifier = Modifier.size(80.dp),
+                        modifier = Modifier.size(70.dp).aspectRatio(1.1f),
                         onClick = onMenu
                     )
                 }
             }
 
             GlossyButton(
-                iconRes = R.drawable.ic_launcher_foreground,
+                iconRes = R.drawable.ic_close,
                 iconScale = 1.3f,
-                cornerRadius = 40.dp,
+                cornerRadius = 20.dp,
                 modifier = Modifier
-                    .offset(x = 22.dp, y = (-26).dp)
+                    .offset(x = 20.dp, y = (-20).dp)
                     .size(64.dp),
                 onClick = onResume
             )
@@ -131,7 +125,7 @@ fun AudioSettingsSection(
     onToggleMusic: () -> Unit,
     onToggleSounds: () -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
+    Column() {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -139,8 +133,8 @@ fun AudioSettingsSection(
         ) {
             GradientText(
                 text = "Music",
-                size = 22.sp,
-                stroke = 6f,
+                size = 32.sp,
+                stroke = 15f,
                 expand = false
             )
 
@@ -157,8 +151,8 @@ fun AudioSettingsSection(
         ) {
             GradientText(
                 text = "Sounds",
-                size = 22.sp,
-                stroke = 6f,
+                size = 32.sp,
+                stroke = 15f,
                 expand = false
             )
 
@@ -176,23 +170,23 @@ fun PixelSwitch(
     onToggle: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val bgColor = if (enabled) Color(0xFF8FFF57) else Color(0xFF5A5A5A)
-    val knobOffset by animateDpAsState(if (enabled) 22.dp else 2.dp)
+    val bgColor = if (enabled) Color(0xFF8FFF57) else Color(0xFFDCF59C)
+    val knobOffset by animateDpAsState(if (enabled) 42.dp else 2.dp)
 
     Box(
         modifier = modifier
-            .width(46.dp)
-            .height(26.dp)
+            .width(66.dp)
+            .height(36.dp)
             .background(bgColor, RoundedCornerShape(12.dp))
             .border(3.dp, Color.Black, RoundedCornerShape(12.dp))
             .clickable { onToggle() }
     ) {
         Box(
             modifier = Modifier
-                .offset(x = knobOffset, y = 2.dp)
+                .offset(x = knobOffset, y = 8.dp)
                 .size(20.dp)
-                .background(Color(0xFFEFFFEF), RoundedCornerShape(10.dp))
-                .border(2.dp, Color.Black, RoundedCornerShape(10.dp))
+                .background(Color(0xff193f0d), RoundedCornerShape(10.dp))
+                .border(1.dp, Color.Black, RoundedCornerShape(10.dp))
         )
     }
 }

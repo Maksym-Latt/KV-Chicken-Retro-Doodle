@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -51,7 +52,7 @@ fun MenuScreen(
         )
 
         GlossyButton(
-            iconRes = R.drawable.ic_launcher_foreground,
+            iconRes = R.drawable.ic_settings,
             modifier = Modifier
                 .padding(start = 16.dp, top = 16.dp)
                 .size(60.dp)
@@ -73,10 +74,10 @@ fun MenuScreen(
             Spacer(modifier = Modifier.weight(1.2f))
 
             GlossyButton(
-                iconRes = R.drawable.ic_launcher_foreground,
+                iconRes = R.drawable.ic_play,
                 cornerRadius = 20.dp,
                 onClick = { navController.navigate(AppDestination.Game) },
-                iconScale = 2f
+                modifier = Modifier.fillMaxWidth(0.2f).aspectRatio(1.2f)
             )
 
             Spacer(modifier = Modifier.weight(1.3f))

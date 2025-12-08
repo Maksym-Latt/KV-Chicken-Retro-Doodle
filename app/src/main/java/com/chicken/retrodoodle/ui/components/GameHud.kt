@@ -42,7 +42,7 @@ fun GameHud(
         horizontalArrangement = Arrangement.Start
     ) {
         GlossyButton(
-            iconRes = R.drawable.ic_launcher_foreground,
+            iconRes = R.drawable.ic_pause,
             modifier = Modifier.size(60.dp),
             cornerRadius = 16.dp,
             onClick = onPause
@@ -63,7 +63,7 @@ fun GameHud(
 
                 ScoreCounter(
                     value = score,
-                    modifier = Modifier.absoluteOffset(y = -36.dp)
+                    modifier = Modifier
                 )
             }
         }

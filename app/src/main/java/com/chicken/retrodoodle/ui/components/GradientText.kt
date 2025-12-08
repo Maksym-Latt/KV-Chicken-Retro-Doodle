@@ -43,14 +43,14 @@ fun GradientText(
         FontFamily(
             Font(
                 R.font.fraunces,
-                weight = FontWeight.Bold
+                weight = FontWeight.Normal
             )
         )
     }
 
     val baseStyle = MaterialTheme.typography.displayLarge.copy(
         fontSize = size,
-        fontWeight = FontWeight.Bold,
+        fontWeight = FontWeight.Normal,
         fontFamily = typeFace,
         textAlign = alignment
     )
@@ -74,6 +74,7 @@ fun GradientText(
                     join = StrokeJoin.Round
                 )
             ),
+            lineHeight = size * 1.8f,
             modifier = widthModifier
         )
 
@@ -81,6 +82,7 @@ fun GradientText(
             text = gradientText,
             style = baseStyle,
             color = Color.White,
+            lineHeight = size * 1.8f,
             modifier = widthModifier
         )
     }

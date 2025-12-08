@@ -40,7 +40,7 @@ fun GameTitle(modifier: Modifier = Modifier) {
                     Color(0xff83a417)
                 )
             ),
-            modifier = Modifier.offset(y = (-35).dp)
+            modifier = Modifier.offset(y = (-75).dp)
         )
 
         GradientText(
@@ -53,7 +53,7 @@ fun GameTitle(modifier: Modifier = Modifier) {
                     Color(0xff4c600e)
                 )
             ),
-            modifier = Modifier.offset(y = (-70).dp)
+            modifier = Modifier.offset(y = (-145).dp)
         )
     }
 }

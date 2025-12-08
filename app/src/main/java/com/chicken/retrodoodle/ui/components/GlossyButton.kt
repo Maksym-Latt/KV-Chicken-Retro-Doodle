@@ -35,7 +35,7 @@ fun GlossyButton(
     ),
     borderColor: Color = Color(0xFF1C2B31),
     textSize: TextUnit = 24.sp,
-    iconScale: Float = 2f,
+    iconScale: Float = 1f,
     onClick: () -> Unit
 ) {
     val shape = RoundedCornerShape(cornerRadius)
@@ -72,7 +72,8 @@ fun GlossyButton(
                     modifier = Modifier
                         .size(iconSize)
                         .alpha(alpha),
-                    contentScale = ContentScale.Fit
+                    contentScale = ContentScale.Fit,
+                    colorFilter = ColorFilter.tint(Color(0xff000000))
                 )
             }
 

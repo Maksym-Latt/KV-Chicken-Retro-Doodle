@@ -208,6 +208,7 @@ fun GameScreen(
         )
 
         when (state.status) {
+
             GameStatus.Idle -> GameIntroOverlay(
                 onStart = {
                     if (worldWidthPx > 0f && worldHeightPx > 0f) {
@@ -216,7 +217,8 @@ fun GameScreen(
                 },
                 modifier = Modifier.align(Alignment.Center)
             )
-            GamePauseOverlay(
+
+            GameStatus.Paused -> GamePauseOverlay(
                 musicOn = settings.musicEnabled,
                 soundsOn = settings.soundsEnabled,
                 onToggleMusic = { settingsViewModel.toggleMusic() },
@@ -226,6 +228,7 @@ fun GameScreen(
                 onMenu = { navController.navigateUp() },
                 modifier = Modifier.align(Alignment.Center)
             )
+
             GameStatus.GameOver -> GameOverOverlay(
                 score = state.score,
                 bestScore = state.bestScore,
@@ -233,7 +236,9 @@ fun GameScreen(
                 onMenu = { navController.navigateUp() },
                 modifier = Modifier.align(Alignment.Center)
             )
+
             GameStatus.Playing -> Unit
         }
+
     }
 }
