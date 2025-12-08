@@ -33,7 +33,7 @@ class GameViewModel @Inject constructor(
     private val spacingRange = 150..230
     private val generationDepth = 3200f
     private val offscreenCullBuffer = 200f
-    private val enemySpawnChance = 0.2f
+    private val enemySpawnChance = 0.05f
     private val collectibleSpawnChance = 0.15f
 
     private val _ui = MutableStateFlow(GameUiState())
