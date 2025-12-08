@@ -156,13 +156,20 @@ fun GameScreen(
             }
 
             state.enemies.forEach { e ->
-                drawImage(
-                    image = bugBmp,
-                    topLeft = Offset(
-                        e.position.x - 24f,
-                        e.position.y - cam - 24f
-                    )
+                val bugHalfSize = 24f
+                val enemyPivot = Offset(e.position.x, e.position.y - cam)
+                val bugTopLeft = Offset(
+                    e.position.x - bugHalfSize,
+                    e.position.y - cam - bugHalfSize
                 )
+                val bugScaleX = if (e.direction > 0f) -1f else 1f
+
+                withTransform({ scale(scaleX = bugScaleX, scaleY = 1f, pivot = enemyPivot) }) {
+                    drawImage(
+                        image = bugBmp,
+                        topLeft = bugTopLeft
+                    )
+                }
             }
 
             val playerSizePx = GameScaling.playerSize
@@ -171,13 +178,18 @@ fun GameScreen(
                 (state.player.position.y - cam - playerSizePx / 2f).roundToInt()
             )
 
-            drawImage(
-                image = playerBmp,
-                srcOffset = IntOffset.Zero,
-                srcSize = IntSize(playerBmp.width, playerBmp.height),
-                dstOffset = playerDstOffset,
-                dstSize = IntSize(playerSizePx.roundToInt(), playerSizePx.roundToInt())
-            )
+            val playerPivot = Offset(state.player.position.x, state.player.position.y - cam)
+            val playerScaleX = if (state.player.velocity.x < -0.1f) -1f else 1f
+
+            withTransform({ scale(scaleX = playerScaleX, scaleY = 1f, pivot = playerPivot) }) {
+                drawImage(
+                    image = playerBmp,
+                    srcOffset = IntOffset.Zero,
+                    srcSize = IntSize(playerBmp.width, playerBmp.height),
+                    dstOffset = playerDstOffset,
+                    dstSize = IntSize(playerSizePx.roundToInt(), playerSizePx.roundToInt())
+                )
+            }
 
             if (GameConfig.debugCollisionOverlay) {
                 state.platforms.forEach { platform ->
