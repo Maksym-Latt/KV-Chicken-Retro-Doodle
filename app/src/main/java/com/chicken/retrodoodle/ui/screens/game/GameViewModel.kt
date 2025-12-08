@@ -109,6 +109,7 @@ class GameViewModel @Inject constructor(
         if (s.status != GameStatus.Playing) return
 
         var p = s.player
+        var levelEggs = s.levelEggs
 
         val updatedPlatforms = s.platforms.map { pl ->
             if (pl.type == PlatformType.Moving && !pl.isBroken) {
@@ -181,7 +182,7 @@ class GameViewModel @Inject constructor(
                 stompedEnemies += enemy.id
                 vel = vel.copy(y = -GameConfig.jumpForce)
                 pos = pos.copy(y = enemyTop - playerHalf)
-                addEggs(1)
+                levelEggs += 1
             } else {
                 val verticalOverlap = abs(pos.y - enemy.position.y) <= playerHalf + GameScaling.enemyCollisionHalfHeight
                 if (horizontalOverlap && verticalOverlap) {
@@ -201,7 +202,7 @@ class GameViewModel @Inject constructor(
 
         if (collectedIds.isNotEmpty()) {
             collectiblesAfterCollision = collectiblesAfterCollision.filterNot { it.id in collectedIds }.toMutableList()
-            addEggs(collectedIds.size)
+            levelEggs += collectedIds.size
         }
 
         var alivePlatforms = platformsAfterCollision.filterNot { it.type == PlatformType.Cracked && it.isBroken }
@@ -242,6 +243,7 @@ class GameViewModel @Inject constructor(
             enemies = aliveEnemies,
             collectibles = aliveCollectibles,
             cameraOffset = cam,
+            levelEggs = levelEggs,
             highestY = highest,
             score = ((s.worldHeight - highest) / 10).toInt()
         )
@@ -334,11 +336,6 @@ class GameViewModel @Inject constructor(
         )
     }
 
-    private fun addEggs(amount: Int) {
-        if (amount <= 0) return
-        _ui.value = _ui.value.copy(levelEggs = _ui.value.levelEggs + amount)
-    }
-
     private fun finalizeResults() {
         if (resultsApplied) return
         resultsApplied = true
@@ -351,7 +348,7 @@ class GameViewModel @Inject constructor(
             if (finalState.levelEggs > 0) {
                 settingsRepository.addEggs(finalState.levelEggs)
             }
-            settingsRepository.saveBestScore(finalState.score)
+            settingsRepository.saveBestScore(bestScore)
         }
     }
 }
