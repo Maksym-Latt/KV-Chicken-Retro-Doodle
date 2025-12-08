@@ -2,6 +2,7 @@ package com.chicken.retrodoodle.ui.screens.game
 
 import androidx.compose.ui.geometry.Offset
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.chicken.retrodoodle.core.model.Collectible
 import com.chicken.retrodoodle.core.model.Enemy
 import com.chicken.retrodoodle.core.model.GameConfig
@@ -19,6 +20,7 @@ import kotlin.random.Random
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
 @HiltViewModel
 class GameViewModel @Inject constructor(
@@ -27,17 +29,40 @@ class GameViewModel @Inject constructor(
 
     private var nextPlatformId = 0
     private var nextEnemyId = 0
+    private var nextCollectibleId = 0
     private val spacingRange = 150..230
     private val generationDepth = 3200f
     private val offscreenCullBuffer = 200f
     private val enemySpawnChance = 0.2f
+    private val collectibleSpawnChance = 0.15f
 
     private val _ui = MutableStateFlow(GameUiState())
     val uiState: StateFlow<GameUiState> = _ui.asStateFlow()
 
+    init {
+        viewModelScope.launch {
+            settingsRepository.eggsFlow.collect { eggs ->
+                _ui.value = _ui.value.copy(eggs = eggs)
+            }
+        }
+
+        viewModelScope.launch {
+            settingsRepository.selectedSkinFlow.collect { skin ->
+                _ui.value = _ui.value.copy(player = _ui.value.player.copy(skin = skin))
+            }
+        }
+
+        viewModelScope.launch {
+            settingsRepository.bestScoreFlow.collect { best ->
+                _ui.value = _ui.value.copy(bestScore = best)
+            }
+        }
+    }
+
     fun startGame(worldW: Float, worldH: Float) {
         nextPlatformId = 0
         nextEnemyId = 0
+        nextCollectibleId = 0
 
         val startPlatformY = worldH - 200f
 
@@ -51,11 +76,12 @@ class GameViewModel @Inject constructor(
 
         val platforms = mutableListOf(basePlatform)
         val enemies = mutableListOf<Enemy>()
+        val collectibles = mutableListOf<Collectible>()
 
         val playerSize = GameScaling.playerSize
         val playerStartY = startPlatformY - basePlatform.height / 2f - playerSize / 2f
 
-        generatePlatforms(platforms, enemies, worldW, startPlatformY)
+        generatePlatforms(platforms, enemies, collectibles, worldW, startPlatformY)
 
         _ui.value = GameUiState(
             status = GameStatus.Playing,
@@ -65,6 +91,7 @@ class GameViewModel @Inject constructor(
             highestY = playerStartY,
             platforms = platforms,
             enemies = enemies,
+            collectibles = collectibles,
             player = Player(
                 position = Offset(worldW / 2f, playerStartY),
                 velocity = Offset(0f, 0f),
@@ -123,6 +150,8 @@ class GameViewModel @Inject constructor(
         val collisionHalfWidth = GameScaling.playerCollisionRadius
         val platformBuffer = GameScaling.platformCollisionBuffer
         val platformsAfterCollision = updatedPlatforms.toMutableList()
+        var collectiblesAfterCollision = s.collectibles.toMutableList()
+        val stompedEnemies = mutableSetOf<Int>()
 
         updatedPlatforms.forEachIndexed { index, pl ->
             if (pl.isBroken) return@forEachIndexed
@@ -141,8 +170,44 @@ class GameViewModel @Inject constructor(
             }
         }
 
+        updatedEnemies.forEach { enemy ->
+            val enemyTop = enemy.position.y - GameScaling.enemyCollisionHalfHeight
+            val horizontalOverlap =
+                abs(pos.x - enemy.position.x) <= collisionHalfWidth + GameScaling.enemyCollisionHalfWidth
+            val previousBottom = p.position.y + playerHalf
+            val currentBottom = pos.y + playerHalf
+
+            val stomped = horizontalOverlap && previousBottom <= enemyTop && currentBottom >= enemyTop && vel.y > 0
+            if (stomped) {
+                stompedEnemies += enemy.id
+                vel = vel.copy(y = -GameConfig.jumpForce)
+                pos = pos.copy(y = enemyTop - playerHalf)
+                addEggs(1)
+            } else {
+                val verticalOverlap = abs(pos.y - enemy.position.y) <= playerHalf + GameScaling.enemyCollisionHalfHeight
+                if (horizontalOverlap && verticalOverlap) {
+                    endGame(); return
+                }
+            }
+        }
+
+        val collectedIds = mutableListOf<Int>()
+        collectiblesAfterCollision.forEach { collectible ->
+            val overlapX = abs(pos.x - collectible.position.x) <= collisionHalfWidth
+            val overlapY = abs(pos.y - collectible.position.y) <= collisionHalfWidth
+            if (overlapX && overlapY) {
+                collectedIds += collectible.id
+            }
+        }
+
+        if (collectedIds.isNotEmpty()) {
+            collectiblesAfterCollision = collectiblesAfterCollision.filterNot { it.id in collectedIds }.toMutableList()
+            addEggs(collectedIds.size)
+        }
+
         var alivePlatforms = platformsAfterCollision.filterNot { it.type == PlatformType.Cracked && it.isBroken }
-        var aliveEnemies = updatedEnemies
+        var aliveCollectibles = collectiblesAfterCollision
+        var aliveEnemies = updatedEnemies.filterNot { it.id in stompedEnemies }
 
         var cam = s.cameraOffset
         val playerScreenY = pos.y - cam
@@ -155,10 +220,6 @@ class GameViewModel @Inject constructor(
             endGame(); return
         }
 
-        if (isTouchingEnemy(pos, aliveEnemies)) {
-            endGame(); return
-        }
-
         val highest = min(s.highestY, pos.y)
 
         val platformPool = alivePlatforms.filter { platform ->
@@ -167,15 +228,20 @@ class GameViewModel @Inject constructor(
         val enemyPool = aliveEnemies.filter { enemy ->
             enemy.position.y - cam <= s.worldHeight + offscreenCullBuffer
         }.toMutableList()
+        val collectiblePool = aliveCollectibles.filter { collectible ->
+            collectible.position.y - cam <= s.worldHeight + offscreenCullBuffer
+        }.toMutableList()
 
-        generatePlatforms(platformPool, enemyPool, s.worldWidth, cam)
+        generatePlatforms(platformPool, enemyPool, collectiblePool, s.worldWidth, cam)
         alivePlatforms = platformPool
         aliveEnemies = enemyPool
+        aliveCollectibles = collectiblePool
 
         _ui.value = s.copy(
             player = p.copy(position = pos, velocity = vel),
             platforms = alivePlatforms,
             enemies = aliveEnemies,
+            collectibles = aliveCollectibles,
             cameraOffset = cam,
             highestY = highest,
             score = ((s.worldHeight - highest) / 10).toInt()
@@ -200,6 +266,7 @@ class GameViewModel @Inject constructor(
     private fun generatePlatforms(
         platforms: MutableList<Platform>,
         enemies: MutableList<Enemy>,
+        collectibles: MutableList<Collectible>,
         worldWidth: Float,
         cameraOffset: Float,
     ) {
@@ -224,6 +291,17 @@ class GameViewModel @Inject constructor(
                     direction = if (Random.nextBoolean()) 1f else -1f
                 )
                 enemies.add(enemy)
+            }
+
+            if (Random.nextFloat() < collectibleSpawnChance) {
+                val collectible = Collectible(
+                    id = nextCollectibleId++,
+                    position = Offset(
+                        x = newPlatform.position.x,
+                        y = newPlatform.position.y - newPlatform.height / 2f - 18f,
+                    )
+                )
+                collectibles.add(collectible)
             }
         }
     }
@@ -252,17 +330,10 @@ class GameViewModel @Inject constructor(
         )
     }
 
-    private fun isTouchingEnemy(playerPosition: Offset, enemies: List<Enemy>): Boolean {
-        val halfPlayer = GameScaling.playerCollisionRadius
-        val halfEnemyX = GameScaling.enemyCollisionHalfWidth
-        val halfEnemyY = GameScaling.enemyCollisionHalfHeight
-
-        enemies.forEach { enemy ->
-            val overlapX = abs(playerPosition.x - enemy.position.x) <= halfPlayer + halfEnemyX
-            val overlapY = abs(playerPosition.y - enemy.position.y) <= halfPlayer + halfEnemyY
-            if (overlapX && overlapY) return true
-        }
-        return false
+    private fun addEggs(amount: Int) {
+        if (amount <= 0) return
+        _ui.value = _ui.value.copy(eggs = _ui.value.eggs + amount)
+        viewModelScope.launch { settingsRepository.addEggs(amount) }
     }
 }
 
