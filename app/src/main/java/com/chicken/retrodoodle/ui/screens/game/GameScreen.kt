@@ -4,6 +4,7 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
@@ -31,13 +32,15 @@ import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.navigation.NavHostController
 import com.chicken.retrodoodle.R
 import com.chicken.retrodoodle.audio.AudioController
@@ -64,6 +67,7 @@ fun GameScreen(
     val settings by settingsViewModel.uiState.collectAsState()
     val context = LocalContext.current
     val density = LocalDensity.current
+    val lifecycleOwner = LocalLifecycleOwner.current
 
     LaunchedEffect(Unit) { audio.playGameMusic() }
     LaunchedEffect(viewModel) {
@@ -73,6 +77,25 @@ fun GameScreen(
                 GameEvent.CollectEgg -> audio.playCollectEgg()
                 GameEvent.GameOver -> audio.playGameOver()
             }
+        }
+    }
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_PAUSE) {
+                viewModel.pauseGame()
+            }
+        }
+        val lifecycle = lifecycleOwner.lifecycle
+        lifecycle.addObserver(observer)
+        onDispose { lifecycle.removeObserver(observer) }
+    }
+
+    BackHandler {
+        if (state.status == GameStatus.Playing) {
+            viewModel.pauseGame()
+        } else {
+            navController.navigateUp()
         }
     }
 
