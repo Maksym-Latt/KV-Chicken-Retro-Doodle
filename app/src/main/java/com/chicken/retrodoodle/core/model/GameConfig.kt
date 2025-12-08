@@ -5,8 +5,8 @@ package com.chicken.retrodoodle.core.model
  * Adjust values here to change movement responsiveness without touching UI.
  */
 object GameConfig {
-    const val gravity = 2100f
-    const val jumpForce = 1100f
+    const val gravity = 2600f
+    const val jumpForce = 1300f
     const val tiltAcceleration = 1250f
     const val maxHorizontalSpeed = 780f
     const val movingPlatformSpeed = 150f
