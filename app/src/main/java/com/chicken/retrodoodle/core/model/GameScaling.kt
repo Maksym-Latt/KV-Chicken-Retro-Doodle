@@ -11,36 +11,45 @@ object GameScaling {
     const val itemScale: Float = 3f
     const val collisionScale: Float = 0.9f
 
-    private const val BASE_PLAYER_SIZE = 62f
-    private const val BASE_PLATFORM_WIDTH = 104f
-    private const val BASE_PLATFORM_HEIGHT = 20f
-    private const val BASE_COLLECTIBLE_SIZE = 24f
-    private const val BASE_ENEMY_WIDTH = 75f
-    private const val BASE_ENEMY_HEIGHT = 57f
+    private const val BASE_PLAYER_WIDTH = 172f / itemScale
+    private const val BASE_PLAYER_HEIGHT = 220f / itemScale
+    private const val BASE_PLATFORM_WIDTH = 170f / itemScale
+    private const val BASE_PLATFORM_HEIGHT = 44f / itemScale
+    private const val BASE_COLLECTIBLE_WIDTH = 111f / itemScale
+    private const val BASE_COLLECTIBLE_HEIGHT = 138f / itemScale
+    private const val BASE_ENEMY_WIDTH = 150f / itemScale
+    private const val BASE_ENEMY_HEIGHT = 112f / itemScale
     private const val BASE_PLATFORM_BUFFER = 4f
-    private const val BASE_ENEMY_COLLISION_HALF_WIDTH = 18f
-    private const val BASE_ENEMY_COLLISION_HALF_HEIGHT = 18f
-    private const val BASE_COLLECTIBLE_COLLISION_HALF_WIDTH = 22f
-    private const val BASE_COLLECTIBLE_COLLISION_HALF_HEIGHT = 22f
 
-    val playerSize: Float = BASE_PLAYER_SIZE * itemScale
-    val playerSizeDp = playerSize.dp
+    val playerWidth: Float = BASE_PLAYER_WIDTH * itemScale
+    val playerHeight: Float = BASE_PLAYER_HEIGHT * itemScale
+    val playerHalfWidth: Float = playerWidth / 2f
+    val playerHalfHeight: Float = playerHeight / 2f
+    val playerSize: Float = playerHeight
+    val playerSizeDp = playerHeight.dp
 
     val platformWidth: Float = BASE_PLATFORM_WIDTH * itemScale
     val platformHeight: Float = BASE_PLATFORM_HEIGHT * itemScale
 
-    val collectibleSize: Float = BASE_COLLECTIBLE_SIZE * itemScale
-    val collectibleSizeDp = collectibleSize.dp
+    val collectibleWidth: Float = BASE_COLLECTIBLE_WIDTH * itemScale
+    val collectibleHeight: Float = BASE_COLLECTIBLE_HEIGHT * itemScale
+    val collectibleHalfWidth: Float = collectibleWidth / 2f
+    val collectibleHalfHeight: Float = collectibleHeight / 2f
+    val collectibleSize: Float = collectibleHeight
+    val collectibleSizeDp = collectibleHeight.dp
 
     val enemyWidth: Float = BASE_ENEMY_WIDTH * itemScale
     val enemyHeight: Float = BASE_ENEMY_HEIGHT * itemScale
+    val enemyHalfWidth: Float = enemyWidth / 2f
+    val enemyHalfHeight: Float = enemyHeight / 2f
     val enemySizeDp = enemyWidth.dp
 
     val platformCollisionBuffer: Float = BASE_PLATFORM_BUFFER * itemScale
 
-    val playerCollisionRadius: Float = playerSize * 0.5f * 0.7f
-    val enemyCollisionHalfWidth: Float = BASE_ENEMY_COLLISION_HALF_WIDTH * 0.8f * itemScale
-    val enemyCollisionHalfHeight: Float = BASE_ENEMY_COLLISION_HALF_HEIGHT * 0.8f * itemScale
-    val collectibleCollisionHalfWidth: Float = BASE_COLLECTIBLE_COLLISION_HALF_WIDTH * itemScale
-    val collectibleCollisionHalfHeight: Float = BASE_COLLECTIBLE_COLLISION_HALF_HEIGHT * itemScale
+    val playerCollisionHalfWidth: Float = playerWidth * 0.35f
+    val playerCollisionHalfHeight: Float = playerHeight * 0.35f
+    val enemyCollisionHalfWidth: Float = enemyWidth * 0.35f
+    val enemyCollisionHalfHeight: Float = enemyHeight * 0.35f
+    val collectibleCollisionHalfWidth: Float = collectibleWidth * 0.4f
+    val collectibleCollisionHalfHeight: Float = collectibleHeight * 0.4f
 }
