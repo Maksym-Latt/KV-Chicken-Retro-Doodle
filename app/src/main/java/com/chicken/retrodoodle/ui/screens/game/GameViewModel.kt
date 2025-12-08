@@ -200,8 +200,12 @@ class GameViewModel @Inject constructor(
 
         val collectedIds = mutableListOf<Int>()
         collectiblesAfterCollision.forEach { collectible ->
-            val overlapX = abs(pos.x - collectible.position.x) <= collisionHalfWidth
-            val overlapY = abs(pos.y - collectible.position.y) <= collisionHalfHeight
+            val overlapX =
+                abs(pos.x - collectible.position.x) <=
+                        collisionHalfWidth + GameScaling.collectibleCollisionHalfWidth
+            val overlapY =
+                abs(pos.y - collectible.position.y) <=
+                        collisionHalfHeight + GameScaling.collectibleCollisionHalfHeight
             if (overlapX && overlapY) {
                 collectedIds += collectible.id
             }
@@ -257,7 +261,7 @@ class GameViewModel @Inject constructor(
             cameraOffset = cam,
             levelEggs = levelEggs,
             highestY = highest,
-            score = ((s.worldHeight - highest) / 10).toInt()
+            score = ((s.worldHeight - highest) / 20).toInt()
         )
     }
 
